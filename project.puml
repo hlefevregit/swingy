@@ -1,0 +1,310 @@
+' =========================
+'        APP / CONFIG
+' =========================
+package "com.hulefevr.swingy" {
+  class App {
+    +main(args:String[]) : void
+  }
+}
+
+package "config" {
+  enum GameMode { CONSOLE; GUI }
+  class GameRules {
+    +mapSize(level:int) : int
+    +xpToLevel(level:int) : int
+    +RUN_SUCCESS_CHANCE : double
+  }
+}
+
+' =========================
+'           VIEW
+' =========================
+package "view" {
+  interface View {
+    +showMainMenu() : void
+    +promptMenuChoice() : String
+    +showHeroList(heroes:List<Hero>) : void
+    +promptCreateHero() : CreateHeroInput
+    +promptSelectHero() : SelectHeroInput
+    +showGameHud(state:GameState) : void
+    +showMap(render:String) : void
+    +promptMove() : MoveInput
+    +showEncounter(encounter:Encounter) : void
+    +promptFightOrRun() : FightRunInput
+    +showBattleResult(result:BattleResult) : void
+    +promptLootChoice(drop:Artifact) : LootChoiceInput
+    +showValidationErrors(errors:List<String>) : void
+    +showMessage(msg:String) : void
+  }
+
+  class ViewManager {
+    -current : View
+    +setView(v:View) : void
+    +getView() : View
+  }
+}
+
+package "view.console" {
+  class ConsoleView
+  class ConsoleRenderer {
+    +renderMiniMap(map:GameMap, center:Position, radius:int) : String
+    +renderHud(state:GameState) : String
+  }
+  ConsoleView ..|> view.View
+  ConsoleView --> ConsoleRenderer
+}
+
+package "view.gui" {
+  class GuiView
+  GuiView ..|> view.View
+}
+
+' =========================
+'        CONTROLLER
+' =========================
+package "controller" {
+  class MenuController {
+    -view : View
+    -repo : HeroRepository
+    -validator : ValidatorUtil
+    -heroFactory : HeroFactory
+    +start() : void
+  }
+
+  class GameController {
+    -view : View
+    -validator : ValidatorUtil
+    -gameService : GameService
+    -repo : HeroRepository
+    +runGame(hero:Hero) : void
+  }
+}
+
+' =========================
+'           MODEL
+' =========================
+package "model.game" {
+  class GameState {
+    -hero : Hero
+    -map : GameMap
+    -previousPos : Position
+    -status : GameStatus
+    +getHero() : Hero
+    +getMap() : GameMap
+  }
+
+  enum GameStatus { IN_GAME; WON; LOST }
+
+  class Encounter {
+    -villain : Villain
+    -position : Position
+  }
+
+  class BattleResult {
+    -heroWon : boolean
+    -xpGained : int
+    -dropped : Artifact
+    -leveledUp : boolean
+  }
+}
+
+package "model.hero" {
+  class Hero {
+    -id : String
+    -name : String
+    -heroClass : HeroClass
+    -level : int
+    -xp : int
+    -baseStats : Stats
+    -weapon : Weapon
+    -armor : Armor
+    -helm : Helm
+    +getTotalAttack() : int
+    +getTotalDefense() : int
+    +getMaxHp() : int
+  }
+
+  enum HeroClass { EXILE; REVENANT; PENITENT }
+
+  class Stats {
+    -attack : int
+    -defense : int
+    -hp : int
+  }
+}
+
+package "model.artifact" {
+  abstract class Artifact {
+    -name : String
+    -bonus : int
+  }
+  class Weapon
+  class Armor
+  class Helm
+  enum ArtifactType { WEAPON; ARMOR; HELM }
+
+  Weapon -|> Artifact
+  Armor  -|> Artifact
+  Helm   -|> Artifact
+}
+
+package "model.enemy" {
+  class Villain {
+    -type : VillainType
+    -level : int
+    -stats : Stats
+    +power() : int
+  }
+  enum VillainType { WATCHER; HERALD; ARCHON; BOUND_SOUL }
+}
+
+package "model.map" {
+  class GameMap {
+    -size : int
+    -exit : Position
+    -heroPos : Position
+    -walls : Set<Position>
+    -villains : Map<Position,Villain>
+    +isBorder(pos:Position) : boolean
+    +isExit(pos:Position) : boolean
+    +hasVillain(pos:Position) : boolean
+    +getVillain(pos:Position) : Villain
+  }
+
+  class Position {
+    +x : int
+    +y : int
+  }
+
+  enum Direction { NORTH; EAST; SOUTH; WEST }
+}
+
+' =========================
+'          SERVICES
+' =========================
+package "service" {
+  class GameService {
+    -rules : GameRules
+    -mapGen : MapGenerator
+    -moveSvc : MovementService
+    -battleSvc : BattleService
+    -lootSvc : LootService
+    -levelSvc : LevelService
+    +startNewRun(hero:Hero) : GameState
+    +move(state:GameState, dir:Direction) : Encounter
+    +fight(state:GameState, encounter:Encounter) : BattleResult
+    +runAway(state:GameState, encounter:Encounter) : boolean
+    +applyLoot(hero:Hero, artifact:Artifact, keep:boolean) : void
+  }
+
+  class HeroFactory {
+    +create(name:String, clazz:HeroClass) : Hero
+  }
+
+  class MapGenerator {
+    -random : RandomService
+    +generate(size:int, heroLevel:int, gateMode:boolean) : GameMap
+  }
+
+  class MovementService {
+    +nextPosition(pos:Position, dir:Direction) : Position
+    +canMove(map:GameMap, pos:Position) : boolean
+  }
+
+  class BattleService {
+    -random : RandomService
+    +simulate(hero:Hero, villain:Villain) : boolean
+  }
+
+  class LootService {
+    -random : RandomService
+    +dropFor(villain:Villain) : Artifact
+    +xpFor(villain:Villain) : int
+  }
+
+  class LevelService {
+    -rules : GameRules
+    +applyXp(hero:Hero, gained:int) : boolean
+  }
+
+  class RandomService {
+    +nextInt(bound:int) : int
+    +nextDouble() : double
+  }
+}
+
+' =========================
+'        PERSISTENCE
+' =========================
+package "persistence" {
+  interface HeroRepository {
+    +loadAll() : List<Hero>
+    +save(hero:Hero) : void
+  }
+}
+
+package "persistence.file" {
+  class FileHeroRepository {
+    -path : String
+    +loadAll() : List<Hero>
+    +save(hero:Hero) : void
+  }
+  FileHeroRepository ..|> persistence.HeroRepository
+}
+
+package "persistence.db" {
+  class JdbcHeroRepository
+  JdbcHeroRepository ..|> persistence.HeroRepository
+}
+
+' =========================
+'        VALIDATION
+' =========================
+package "validation" {
+  class ValidatorUtil {
+    +validate(obj:Object) : List<String>
+  }
+}
+
+package "validation.dto" {
+  class CreateHeroInput {
+    +name : String
+    +heroClass : String
+  }
+  class SelectHeroInput { +index : int }
+  class MenuChoiceInput { +choice : int }
+  class MoveInput { +direction : String }
+  class FightRunInput { +choice : String }
+  class LootChoiceInput { +keep : String }
+}
+
+' =========================
+'      RELATIONSHIPS
+' =========================
+controller.MenuController --> view.View
+controller.MenuController --> persistence.HeroRepository
+controller.MenuController --> validation.ValidatorUtil
+controller.MenuController --> service.HeroFactory
+
+controller.GameController --> view.View
+controller.GameController --> validation.ValidatorUtil
+controller.GameController --> service.GameService
+controller.GameController --> persistence.HeroRepository
+
+service.GameService --> model.game.GameState
+service.GameService --> model.map.Direction
+service.GameService --> model.game.Encounter
+service.GameService --> model.game.BattleResult
+
+model.game.GameState --> model.hero.Hero
+model.game.GameState --> model.map.GameMap
+
+model.hero.Hero --> model.artifact.Weapon
+model.hero.Hero --> model.artifact.Armor
+model.hero.Hero --> model.artifact.Helm
+model.enemy.Villain --> model.hero.Stats
+
+model.map.GameMap --> model.map.Position
+model.map.GameMap --> model.enemy.Villain
+
+@enduml

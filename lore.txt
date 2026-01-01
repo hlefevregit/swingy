@@ -1,0 +1,346 @@
+Lancement :
+══════════════════════════════════════════════════════
+                    SWINGY
+             The Book of the Fallen
+══════════════════════════════════════════════════════
+
+You were not cast down.
+You were erased.
+
+Your name was struck from the Choir.
+Your wings burned, but did not break.
+
+Between Heaven and the Abyss lies the Trial —
+a shifting land, watched by Angels who do not forgive.
+
+Reach the edge of this world.
+Defy the Judgment.
+Remember who you were.
+
+══════════════════════════════════════════════════════
+Press ENTER to begin your descent.
+
+
+
+Main Menu :
+══════════════════════════════════════════════════════
+               THE BOOK OF THE FALLEN
+══════════════════════════════════════════════════════
+
+1. Summon a Fallen Soul
+2. Resume the Trial
+3. Scriptures of Condemnation
+4. Abandon the Descent
+
+Choose ➤ _
+
+Encounter :
+A Watcher descends before you.
+Its blade is light. Its mercy is none.
+
+Artefacts :
+
+The Archon falls.
+From its remains, a Crown of Memory emerges.
+
++12 Vitality
+Do you claim it? (Y/N)
+
+
+
+Victory :
+Light fractures.
+The Angel falls silent.
+
+You endure.
+
+
+Defeat :
+Your wings finally burn to ash.
+The Judgment is complete.
+
+
+Exemple 9x9 :
+Legend: @=You  .=Empty  V=Villain  #=Exit
+┌─────────────────┐
+| . . . . . . . . |
+| . . . V . . . . |
+| . . . . . . . . |
+| . . . . . . . . |
+| . . . . @ . . . |
+| . . . . . . . . |
+| . . . . . V . . |
+| . . . . . . . . |
+| . . . . . . . . .
+└─────────────────┘
+
+Event :
+--- Last events ---
+- You moved North.
+- A Watcher descends before you.
+- You tried to run... failed.
+- You won the battle. +420 XP.
+- Loot dropped: Relic of Defiance (+3 ATK). Kept.
+
+HUD :
+Fallen: Azrael (Revenant)  LVL 3  XP 2100/4800
+ATK 14  DEF 9  HP 32/32
+Pos (19, 19)  Exit: (0, 25)  Map: 39x39
+
+Weapons :
+Nom                                     Description
+Blade of Blasphemy                      Une lame forgée dans un serment brisé
+Spear of the First Fall                 Arme ayant percé la voûte céleste
+Ashen Claw                              Manifestation de ta rage
+
+Text de drop :
+From the Angel’s remains,
+an Instrument of Defiance emerges.
+
+
+Armor :
+Sigil of Scourged Wings                 Armure marquée par les flammes divines
+Mantle of the Cast Out                  Protection forgée dans l’exil
+Carapace of Judgment                    L’armure d’un ancien bourreau céleste
+
+Helm :
+Crown of the First Choir                Souvenir de ton rang perdu
+Halo of Ash                             Ce qu’il reste de ta gloire
+Diadem of Silence                       Une couronne que le Ciel ne nomme plus
+
+
+Ennemies :
+
+Level 1-3 :
+
+	•	Watcher (Anges de surveillance, sans compassion.)
+
+``A Watcher descends.
+It does not speak. It remembers your crime.``
+
+
+Level 4-7
+	•	Herald
+	•	Thurifer (porteur d’encens, brûle l’âme)
+
+``The Herald calls your name — a name you no longer bear.``
+
+Level 8-10
+
+	•	Archon
+	•	Virtue
+	•	Dominion
+
+``An Archon blocks your path.
+It knows how you will die.``
+
+Level 11-15
+
+	•	Seraph of Judgment
+	•	Principality
+	•	The Ascended Host
+
+``The air burns.
+The Choir stands united.``
+
+Special ennemies :
+
+	•	Bound Soul : âmes humaines enchaînées, utilisées comme armes
+	•	Echo of Yourself (mini-boss narratif)
+
+``It has your wings.
+It remembers what you were.``
+
+
+Level design narrative :
+
+Niveau                  Nom                     Ambiance
+1–3                     Plains of Ash           Ruines célestes
+4–6                     Fields of Chains        Lois divines brisées
+7–9                     Vaults of Judgment      Architecture céleste
+10–12                   The Silent Choir        Plus aucun chant
+13–15                   The Threshold           Le Ciel est visible
+
+Text de passage de niveau :
+
+Exemple lvl2 :
+You remember your wings.
+They were not given.
+They were earned.
+
+LEVEL ASCENDED
+
+lvl 5 :
+The Light no longer burns.
+It recoils.
+
+You ascend.
+
+Level 10 :
+The Choir falls silent.
+They know your name now.
+
+You are no longer fleeing.
+You are returning.
+
+Level 15 (Final) :
+
+📍 Contexte
+	•	Le joueur a atteint le niveau 15
+	•	Il a franchi la porte / la bordure finale
+	•	Il ne s’agit plus d’une épreuve
+	•	Il s’agit d’un jugement
+
+
+
+
+I — L’ARRIVÉE (fin du gameplay classique)
+
+Texte affiché juste après la sortie de la map :
+
+``The land ends.
+
+No ash.
+No chains.
+No walls.
+
+Only light — vast, silent, absolute.
+
+You have ascended.``
+
+➡️ À ce moment :
+	•	plus de mini-map
+	•	plus de déplacements
+	•	seulement du texte
+	•	la musique (si GUI) s’arrête ou devient sourde
+
+
+
+II — LE SILENCE AVANT LE VERDICT
+
+``You expect battle.
+You expect resistance.
+
+None comes.
+
+The Choir does not sing.
+The gates do not close.
+
+They were never meant to stop you.``
+
+Une pause.
+(En console : Press ENTER)
+
+
+
+III — L’APPARITION DE L’ARCHANGE
+
+Archange du Jugement (froid, inévitable)
+
+``A presence descends.
+
+Not with wings.
+Not with fire.
+
+With certainty.
+
+It knows your name.
+It has always known it.``
+
+L’archange parle peu.
+Chaque mot est une loi.
+
+
+
+IV — LE DIALOGUE (très court, très fort)
+
+L’archange parle peu.
+Chaque mot est une loi.
+
+``"You climbed."
+
+"You endured."
+
+"You were never forgiven."``
+
+Le joueur n’a pas de choix ici.
+Le jeu ne demande rien.
+Il constate.
+
+
+V — LE COMBAT IMPOSSIBLE
+
+Présentation du combat
+
+Tu affiches un écran de combat comme d’habitude :
+	•	stats du héros
+	•	stats du boss
+
+Mais quelque chose cloche.
+
+ENCOUNTER: ARCHANGEL
+
+ATK: Unknown
+DEF: Absolute
+HP: Unmeasurable
+
+
+Premier tour
+
+Le joueur attaque.
+
+``You strike.
+
+The blow lands.
+The light does not respond.``
+
+
+L’archange attaque.
+
+``The Archangel moves.
+
+There is no violence.
+Only erasure.``
+
+Les HP tombent à zéro en un seul coup, peu importe les stats.
+
+
+
+VI — LA DÉFAITE ABSOLUE
+
+``Your wings do not burn.
+
+They are unmade.``
+
+Pause.
+
+``This is not punishment.
+This is correction.``
+
+
+
+VII — LA CONDAMNATION (FIN)
+
+``You are not cast down.
+
+You are fixed.
+
+Forever falling.
+Forever remembering.``
+
+
+
+VIII — ÉCRAN FINAL
+
+══════════════════════════════════════
+          THE FALL IS ETERNAL
+══════════════════════════════════════
+
+You reached Heaven.
+
+Heaven rejected you.
+
+The Trial continues.
+
+══════════════════════════════════════
+Thank you for playing.
