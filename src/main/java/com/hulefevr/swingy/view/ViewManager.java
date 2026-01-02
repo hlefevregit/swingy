@@ -1,8 +1,6 @@
 // bonus switch runtime
 package com.hulefevr.swingy.view;
 
-import com.hulefevr.swingy.config.GameMode;
-
 public class ViewManager {
     private static View current;
 

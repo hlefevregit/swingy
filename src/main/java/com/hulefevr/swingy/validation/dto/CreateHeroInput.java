@@ -2,18 +2,18 @@ package com.hulefevr.swingy.validation.dto;
 
 public class CreateHeroInput {
     private String name;
-    private String type;
+    private String heroClass;
 
-    public CreateHeroInput(String name, String type) {
+    public CreateHeroInput(String name, String heroClass) {
         this.name = name;
-        this.type = type;
+        this.heroClass = heroClass;
     }
 
     public String getName() {
         return name;
     }
 
-    public String getType() {
-        return type;
+    public String getHeroClass() {
+        return heroClass;
     }
 }

@@ -3,6 +3,7 @@
 package com.hulefevr.swingy.model.game;
 
 import com.hulefevr.swingy.model.hero.Hero;
+import com.hulefevr.swingy.model.map.GameMap;
 
 public class GameState {
     public enum State {
@@ -12,6 +13,7 @@ public class GameState {
 
     private State currentState;
     private Hero hero;
+    private GameMap map;
 
     public GameState() {
         this.currentState = State.IN_GAME;
@@ -31,5 +33,13 @@ public class GameState {
 
     public void setHero(Hero hero) {
         this.hero = hero;
+    }
+    
+    public GameMap getMap() {
+        return map;
+    }
+    
+    public void setMap(GameMap map) {
+        this.map = map;
     }
 }

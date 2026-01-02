@@ -9,11 +9,11 @@ import com.hulefevr.swingy.model.ennemy.Villain;
  */
 public class Encounter {
     private Villain enemy;
-    private boolean inProgress;
+    private boolean resolved;
 
     public Encounter(Villain enemy) {
         this.enemy = enemy;
-        this.inProgress = true;
+        this.resolved = false;
     }
 
     public Villain getEnemy() {
@@ -24,15 +24,15 @@ public class Encounter {
         this.enemy = enemy;
     }
 
-    public boolean isInProgress() {
-        return inProgress;
+    public boolean isResolved() {
+        return resolved;
     }
 
-    public void setInProgress(boolean inProgress) {
-        this.inProgress = inProgress;
+    public void setResolved(boolean resolved) {
+        this.resolved = resolved;
     }
 
     public void endEncounter() {
-        this.inProgress = false;
+        this.resolved = true;
     }
 }

@@ -1,65 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    
-    <!-- Version du format POM (toujours 4.0.0) -->
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ========================================
-         COORDONNÉES DU PROJET
-         ======================================== -->
-    <!-- Identifiant unique de ton organisation/groupe -->
     <groupId>com.hulefevr</groupId>
-    
-    <!-- Nom de ton projet -->
     <artifactId>swingy</artifactId>
-    
-    <!-- Version actuelle du projet -->
     <version>1.0-SNAPSHOT</version>
-    
-    <!-- Type de packaging : jar = fichier Java exécutable -->
     <packaging>jar</packaging>
 
-    <!-- Nom lisible du projet -->
     <name>Swingy - The Book of the Fallen</name>
     <description>Un jeu RPG rogue-like en Java avec interface console et GUI</description>
 
-    <!-- ========================================
-         PROPRIÉTÉS GLOBALES
-         ======================================== -->
     <properties>
-        <!-- Version de Java à utiliser -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        
-        <!-- Encodage des fichiers sources -->
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        
-        <!-- Classe principale à exécuter -->
         <main.class>com.hulefevr.swingy.App</main.class>
     </properties>
 
-    <!-- ========================================
-         DÉPENDANCES EXTERNES
-         ======================================== -->
     <dependencies>
-        <!-- Validation des données avec annotations -->
-        <dependency>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
-            <version>2.0.1.Final</version>
-        </dependency>
-
-        <!-- Base de données embarquée SQLite (pour sauvegarder les héros) -->
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.44.1.0</version>
         </dependency>
-
-        <!-- Tests unitaires avec JUnit 5 -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -68,12 +38,8 @@
         </dependency>
     </dependencies>
 
-    <!-- ========================================
-         CONFIGURATION DE LA BUILD
-         ======================================== -->
     <build>
         <plugins>
-            <!-- Plugin pour compiler le code Java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -83,8 +49,6 @@
                     <target>17</target>
                 </configuration>
             </plugin>
-
-            <!-- Plugin pour créer un JAR exécutable -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -92,16 +56,12 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <!-- Ajoute le classpath au MANIFEST.MF -->
                             <addClasspath>true</addClasspath>
-                            <!-- Définit la classe principale -->
                             <mainClass>${main.class}</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
             </plugin>
-
-            <!-- Plugin pour exécuter le projet directement avec Maven -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -110,15 +70,11 @@
                     <mainClass>${main.class}</mainClass>
                 </configuration>
             </plugin>
-
-            <!-- Plugin pour les tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
             </plugin>
-
-            <!-- Plugin pour créer un JAR avec toutes les dépendances incluses (uber-jar) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -135,13 +91,11 @@
                                     <mainClass>${main.class}</mainClass>
                                 </transformer>
                             </transformers>
-                            <!-- Nom du fichier JAR final -->
-                            <finalName>swingy</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

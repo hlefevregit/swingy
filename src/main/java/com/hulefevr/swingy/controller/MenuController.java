@@ -44,7 +44,7 @@ public class MenuController {
         // Valider et parser la classe
         HeroClass selectedClass = null;
         try {
-            selectedClass = HeroClass.valueOf(input.getType().toUpperCase());
+            selectedClass = HeroClass.valueOf(input.getHeroClass().toUpperCase());
         } catch (Exception e) {
             view.showMessage("Error: Invalid class. Choose from: EXILE, REVENANT, PENITENT, WARDEN, SORCERER");
             return null;

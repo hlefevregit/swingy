@@ -136,11 +136,17 @@ public class GameController {
     }
     
     private void startGameWithHero(Hero hero, View view) {
-        view.showMessage("\n=== Starting game with " + hero.getName() + " ===\n");
-        view.showMessage("Map size: " + hero.getMapSize() + "x" + hero.getMapSize());
-        view.showMessage("\n[Game loop will be implemented next]");
-        view.showMessage("Press Enter to continue...");
-        view.promptMenuChoice(); // Attendre l'input utilisateur
+        // Créer le contrôleur de boucle de jeu et lancer
+        GameLoopController gameLoop = new GameLoopController(view, heroRepository);
+        gameLoop.startGameLoop(hero);
+        
+        // Sauvegarder le héros après la partie (XP, level, artefacts)
+        try {
+            heroRepository.save(hero);
+            view.showMessage("\n✓ Progress saved!");
+        } catch (Exception e) {
+            view.showMessage("\n✗ Error saving progress: " + e.getMessage());
+        }
     }
 
     private void showLore(View view) {

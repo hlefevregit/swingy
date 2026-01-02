@@ -17,6 +17,13 @@ public class BattleResult {
         this.lootDropped = null;
         this.heroLeveledUp = false;
     }
+    
+    public BattleResult(boolean victory, int xpGained, Artifact loot) {
+        this.victory = victory;
+        this.xpGained = xpGained;
+        this.lootDropped = loot;
+        this.heroLeveledUp = false;
+    }
 
     public boolean isVictory() {
         return victory;

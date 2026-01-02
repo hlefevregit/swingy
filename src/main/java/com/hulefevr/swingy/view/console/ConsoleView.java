@@ -66,7 +66,7 @@ public class ConsoleView implements View {
 	}
 	@Override
 	public MoveInput promptMove() {
-		System.out.print("Enter move direction (N/S/E/W): ");
+		System.out.print("Enter move direction (N/S/E/W) or (Q)uit: ");
 		String direction = InputManager.readLine();
 		return new MoveInput(direction);
 	}

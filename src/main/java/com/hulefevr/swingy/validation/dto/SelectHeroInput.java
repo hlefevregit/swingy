@@ -1,13 +1,13 @@
 package com.hulefevr.swingy.validation.dto;
 
 public class SelectHeroInput {
-    private String choice;
+    private int heroIndex;
 
-    public SelectHeroInput(String choice) {
-        this.choice = choice;
+    public SelectHeroInput(int heroIndex) {
+        this.heroIndex = heroIndex;
     }
 
-    public String getChoice() {
-        return choice;
+    public int getHeroIndex() {
+        return heroIndex;
     }
 }

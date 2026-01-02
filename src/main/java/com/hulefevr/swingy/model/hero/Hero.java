@@ -1,6 +1,7 @@
 package com.hulefevr.swingy.model.hero;
 
 import com.hulefevr.swingy.model.artifact.Artifact;
+import com.hulefevr.swingy.model.map.Position;
 
 /**
  * Représente un héros dans le jeu
@@ -20,6 +21,9 @@ public class Hero {
 	// HP actuels (peut diminuer en combat)
 	private int currentHitPoints;
 	
+	// Position sur la map
+	private Position position;
+	
 	// Artefacts équipés
 	private Artifact weapon;
 	private Artifact armor;
@@ -34,6 +38,7 @@ public class Hero {
 		this.baseDefense = baseDefense;
 		this.baseHitPoints = baseHP;
 		this.currentHitPoints = getMaxHitPoints(); // HP pleins au départ
+		this.position = new Position(0, 0); // Position par défaut
 	}
 
 	// Getters
@@ -144,10 +149,24 @@ public class Hero {
 		return false;
 	}
 	
-	private void levelUp() {
+	/**
+	 * Fait passer le héros au niveau suivant.
+	 * Restaure les HP au maximum.
+	 */
+	public void levelUp() {
 		this.level++;
 		// Restaurer les HP au maximum lors du level up
 		this.currentHitPoints = getMaxHitPoints();
+	}
+	
+	// Gestion de la position
+	
+	public Position getPosition() {
+		return position;
+	}
+	
+	public void setPosition(Position position) {
+		this.position = position;
 	}
 	
 	// Gestion des artefacts
