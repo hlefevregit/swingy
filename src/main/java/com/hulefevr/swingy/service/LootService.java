@@ -3,6 +3,7 @@ package com.hulefevr.swingy.service;
 import com.hulefevr.swingy.model.hero.Hero;
 import com.hulefevr.swingy.model.artifact.Artifact;
 import com.hulefevr.swingy.model.artifact.ArtifactType;
+import com.hulefevr.swingy.persistence.HeroRepository;
 import java.util.Random;
 
 /**
@@ -10,6 +11,7 @@ import java.util.Random;
  */
 public class LootService {
     private Random random = new Random();
+    private final HeroRepository heroRepository;
     
     // Noms narratifs d'artefacts selon lore.txt
     private static final String[] WEAPON_NAMES = {
@@ -32,6 +34,14 @@ public class LootService {
         "Crown of Memory"
     };
     
+    public LootService() {
+        this.heroRepository = null;
+    }
+
+    public LootService(HeroRepository heroRepository) {
+        this.heroRepository = heroRepository;
+    }
+
     /**
      * Génère un artefact aléatoire selon le niveau.
      */
@@ -73,6 +83,17 @@ public class LootService {
             case HELM:
                 hero.setHelm(artifact);
                 break;
+        }
+
+        // Si un repository est fourni, persister automatiquement le héros
+        if (this.heroRepository != null) {
+            try {
+                this.heroRepository.save(hero);
+            } catch (Exception e) {
+                // Log the error but don't prevent the game from continuing
+                System.err.println("Failed to persist hero after equipping artifact: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 }

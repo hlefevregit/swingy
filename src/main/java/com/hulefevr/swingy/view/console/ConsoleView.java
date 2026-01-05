@@ -13,7 +13,7 @@ import java.util.List;
 public class ConsoleView implements View {
 
 	public ConsoleView() {
-		// Pas besoin de créer un Scanner ici
+		// No special init
 	}
 
 	@Override
@@ -45,12 +45,6 @@ public class ConsoleView implements View {
 		System.out.print("Enter hero class: ");
 		String heroClass = InputManager.readLine();
 		return new CreateHeroInput(name, heroClass);
-	}
-	@Override
-	public CreateHeroInput promptSelectHero(List<Hero> heroes) {
-		System.out.print("Select hero by number: ");
-		int choice = Integer.parseInt(InputManager.readLine());
-		return new CreateHeroInput(heroes.get(choice - 1).getName(), null);
 	}
 	@Override
 	public void showGameHud(GameState state) {
@@ -107,6 +101,37 @@ public class ConsoleView implements View {
 	@Override
 	public void showMessage(String message) {
 		System.out.println(message);
+	}
+
+	@Override
+	public String promptSelectHero(List<Hero> heroes) {
+		// Show list then read a line (caller will parse)
+		showHeroList(heroes);
+		System.out.print("Select hero by number (or 0 to go back): ");
+		return InputManager.readLine();
+	}
+
+	@Override
+	public void showHeroDetails(Hero hero) {
+		// Reuse display style used in MenuController.displayHeroStats
+		System.out.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+		System.out.println("  FALLEN: " + hero.getName());
+		System.out.println("  Class: " + hero.getHeroClass().name());
+		System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+		System.out.println("  Level:      " + hero.getLevel());
+		System.out.println("  Experience: " + hero.getExperience() + " / " + hero.getXpForNextLevel());
+		System.out.println("  Attack:     " + hero.getAttack());
+		System.out.println("  Defense:    " + hero.getDefense());
+		System.out.println("  Hit Points: " + hero.getHitPoints() + " / " + hero.getMaxHitPoints());
+		System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+		System.out.println("  Map Size:   " + hero.getMapSize() + "x" + hero.getMapSize());
+		if (hero.getWeapon() != null || hero.getArmor() != null || hero.getHelm() != null) {
+			System.out.println("\n  Artifacts:");
+			if (hero.getWeapon() != null) System.out.println("    Weapon: " + hero.getWeapon().getName());
+			if (hero.getArmor() != null) System.out.println("    Armor:  " + hero.getArmor().getName());
+			if (hero.getHelm() != null) System.out.println("    Helm:   " + hero.getHelm().getName());
+		}
+		System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 	}
 	@Override
 	public String promptSelectHeroChoice() {

@@ -30,8 +30,8 @@ public class GameLoopController {
         this.heroRepository = heroRepository;
         this.mapGenerator = new MapGenerator();
         this.movementService = new MovementService();
-        this.battleService = new BattleService();
-        this.lootService = new LootService();
+    this.battleService = new BattleService();
+    this.lootService = new LootService(heroRepository);
     }
     
     /**

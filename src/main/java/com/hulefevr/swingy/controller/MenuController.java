@@ -64,25 +64,7 @@ public class MenuController {
      * Affiche les stats complètes d'un héros
      */
     public void displayHeroStats(Hero hero) {
-        view.showMessage("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        view.showMessage("  FALLEN: " + hero.getName());
-        view.showMessage("  Class: " + hero.getHeroClass().name());
-        view.showMessage("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        view.showMessage("  Level:      " + hero.getLevel());
-        view.showMessage("  Experience: " + hero.getExperience() + " / " + hero.getXpForNextLevel());
-        view.showMessage("  Attack:     " + hero.getAttack());
-        view.showMessage("  Defense:    " + hero.getDefense());
-        view.showMessage("  Hit Points: " + hero.getHitPoints() + " / " + hero.getMaxHitPoints());
-        view.showMessage("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        view.showMessage("  Map Size:   " + hero.getMapSize() + "x" + hero.getMapSize());
-        
-        // Afficher artefacts si équipés
-        if (hero.getWeapon() != null || hero.getArmor() != null || hero.getHelm() != null) {
-            view.showMessage("\n  Artifacts:");
-            if (hero.getWeapon() != null) view.showMessage("    Weapon: " + hero.getWeapon().getName());
-            if (hero.getArmor() != null) view.showMessage("    Armor:  " + hero.getArmor().getName());
-            if (hero.getHelm() != null) view.showMessage("    Helm:   " + hero.getHelm().getName());
-        }
-        view.showMessage("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+        // Prefer view-specific hero sheet rendering (GUI will show a panel, console will print)
+        view.showHeroDetails(hero);
     }
 }

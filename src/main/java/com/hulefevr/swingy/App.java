@@ -8,6 +8,8 @@ import com.hulefevr.swingy.view.console.ConsoleView;
 import com.hulefevr.swingy.view.gui.GuiView;
 import com.hulefevr.swingy.util.InputManager;
 
+import java.awt.GraphicsEnvironment;
+
 public class App {
     public static void main(String[] args) {
         // Demander à l'utilisateur de choisir entre Console et GUI
@@ -35,11 +37,18 @@ public class App {
         
         while (true) {
             String input = InputManager.readLine().trim();
-            
+
             if (input.equals("1")) {
                 System.out.println("\n✓ Mode Console sélectionné\n");
                 return new ConsoleView();
             } else if (input.equals("2")) {
+                // If running in a headless environment (no DISPLAY), refuse GUI and fallback
+                if (GraphicsEnvironment.isHeadless()) {
+                    System.out.println("\nGUI requested but no display is available. Falling back to Console mode.\n");
+                    System.out.println("If you intended to run the GUI, start the app with an X server or use xvfb-run.\n");
+                    return new ConsoleView();
+                }
+
                 System.out.println("\n✓ Mode GUI sélectionné\n");
                 return new GuiView();
             } else {

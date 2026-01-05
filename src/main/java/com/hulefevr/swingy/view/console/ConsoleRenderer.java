@@ -47,10 +47,9 @@ public class ConsoleRenderer implements View {
     }
 
     @Override
-    public CreateHeroInput promptSelectHero(List<Hero> heroes) {
+    public String promptSelectHero(List<Hero> heroes) {
         System.out.print("Select hero (number): ");
-        int choice = Integer.parseInt(scanner.nextLine());
-        return new CreateHeroInput(heroes.get(choice - 1).getName(), null);
+        return scanner.nextLine();
     }
 
     @Override
@@ -111,6 +110,28 @@ public class ConsoleRenderer implements View {
     @Override
     public void showMessage(String message) {
         System.out.println(message);
+    }
+
+    @Override
+    public void showHeroDetails(Hero hero) {
+        System.out.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("  FALLEN: " + hero.getName());
+        System.out.println("  Class: " + hero.getHeroClass().name());
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("  Level:      " + hero.getLevel());
+        System.out.println("  Experience: " + hero.getExperience() + " / " + hero.getXpForNextLevel());
+        System.out.println("  Attack:     " + hero.getAttack());
+        System.out.println("  Defense:    " + hero.getDefense());
+        System.out.println("  Hit Points: " + hero.getHitPoints() + " / " + hero.getMaxHitPoints());
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("  Map Size:   " + hero.getMapSize() + "x" + hero.getMapSize());
+        if (hero.getWeapon() != null || hero.getArmor() != null || hero.getHelm() != null) {
+            System.out.println("\n  Artifacts:");
+            if (hero.getWeapon() != null) System.out.println("    Weapon: " + hero.getWeapon().getName());
+            if (hero.getArmor() != null) System.out.println("    Armor:  " + hero.getArmor().getName());
+            if (hero.getHelm() != null) System.out.println("    Helm:   " + hero.getHelm().getName());
+        }
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     }
 
     // Méthodes spécifiques à ConsoleRenderer (pas dans l'interface View)

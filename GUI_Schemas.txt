@@ -1,0 +1,427 @@
+Écran 0 — Splash “Couverture du livre”
+
+But : poser l’ambiance, chargement des héros.
+
+┌──────────────────────────────────────────────────────────┐
+│ [Background: gravure Doré assombrie, plein écran]        │
+│                                                          │
+│                 THE BOOK OF THE FALLEN                   │
+│                    “Let the ink bleed.”                  │
+│                                                          │
+│                      [ OPEN THE BOOK ]                   │
+│                                                          │
+│  footer: version | mode: GUI | (c) ton nom               │
+└──────────────────────────────────────────────────────────┘ 
+
+
+Composants
+
+	-JButton OPEN
+	-JLabel titre + citation
+	-Option : barre discrète “Loading heroes…”
+
+Action
+
+	-OPEN → MainMenuPanel
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 1 — Menu principal “Page de sommaire”
+
+┌──────────────────────────────────────────────────────────┐
+│  [left margin: petite gravure verticale]                 │
+│  THE BOOK OF THE FALLEN                                  │
+│  ------------------------------------------------------- │
+│  • Summon a Fallen Soul        [ Enter ]                 │
+│  • Resume the Trial            [ Enter ]                 │
+│  • Scriptures of Condemnation  [ Enter ]                 │
+│  • Abandon the Descent         [ Enter ]                 │
+│                                                          │
+│  footer: “Turn the page with your choice.”               │
+└──────────────────────────────────────────────────────────┘
+
+Composants
+
+	-4 JButton (ou 4 “rows” cliquables)
+	-Option : KeyBindings (1..4)
+
+Action
+
+	-New → CreateHeroPanel
+	-Resume → SelectHeroPanel
+	-Lore → LorePanel
+	-Quit → sauvegarde + exit
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 2 — Lore “Scriptures” (pages + gravures)
+
+┌──────────────────────────────────────────────────────────┐
+│  SCRIPTURES OF CONDEMNATION                              │
+│  ------------------------------------------------------- │
+│  [LEFT: gravure Doré (statique)]   [RIGHT: texte lore]   │
+│                                                          │
+│  (texte sur 2–3 paragraphes max)                         │
+│                                                          │
+│  [ ◀ PREV ]                              [ NEXT ▶ ]      │
+│                           [ BACK TO MENU ]               │
+└──────────────────────────────────────────────────────────┘
+
+Composants
+
+	-JLabel image
+	-JTextArea non éditable (wrap)
+	-Boutons Prev/Next (pages)
+	-Back
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 3 — Create Hero “Inscription du nom”
+
+┌──────────────────────────────────────────────────────────┐
+│  SUMMON A FALLEN SOUL                                    │
+│  ------------------------------------------------------- │
+│  Name (ink it):  [________________________]              │
+│                                                          │
+│  Calling:                                                │
+│   ( ) Exile      - balanced                              │
+│   ( ) Revenant   - wrath / attack                        │
+│   ( ) Penitent   - endurance                             │
+│                                                          │
+│  [ SUMMON ]   [ BACK ]                                   │
+│                                                          │
+│  error area (rouge sombre): “Name must not be blank.”    │
+└──────────────────────────────────────────────────────────┘
+
+Composants
+
+	-JTextField name
+	-JRadioButton + ButtonGroup
+	-JButton Summon
+	-JLabel zone erreurs validation
+
+Action
+
+	-Summon (si valid) → HeroSheetPanel (fiche du héros)
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 4 — Select Hero “Choisir une âme”
+
+┌──────────────────────────────────────────────────────────┐
+│  RESUME THE TRIAL                                        │
+│  ------------------------------------------------------- │
+│  [list]                                                  │
+│  ┌──────────────────────────────────────────────────────┐│
+│  │ Azrael — Revenant — LVL 7 — XP 7000/12200            ││
+│  │ Malach — Exile    — LVL 3 — XP 2100/4800             ││
+│  └──────────────────────────────────────────────────────┘│
+│                                                          │
+│  [ SELECT ]  [ DELETE ]  [ BACK ]                        │
+└──────────────────────────────────────────────────────────┘
+
+Composants
+
+	-JList ou JTable (propre)
+	-Boutons Select/Delete/Back
+	-Zone détails à droite (optionnel)
+
+Action
+
+	-Select → HeroSheetPanel
+	-Delete → confirmation mini pop-up
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 5 — Hero Sheet “Page de personnage”
+
+┌──────────────────────────────────────────────────────────┐
+│  HERO SHEET                                              │
+│  ------------------------------------------------------- │
+│  Name: Azrael                 Class: Revenant            │
+│  Level: 7   XP: 7000/12200                               │
+│                                                          │
+│  Attack: 26   Defense: 18   HP: 55/55                    │
+│                                                          │
+│  Relics Equipped:                                        │
+│   Weapon:  Blade of Blasphemy (+8)                       │
+│   Armor :  Mantle of the Cast Out (+6)                   │
+│   Helm  :  Halo of Ash (+12)                             │
+│                                                          │
+│  [ BEGIN DESCENT ]  [ BACK ]                             │
+└──────────────────────────────────────────────────────────┘
+
+Action
+
+	-Begin → PageTurnPanel (transition) puis GamePanel
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 6 — Page Turn “Transition gravure + narration”
+
+But : avant chaque “run” ou palier important.
+
+┌──────────────────────────────────────────────────────────┐
+│ [Full page gravure Doré]                                 │
+│                                                          │
+│  “The Trial widens as your defiance grows.”              │
+│                                                          │
+│  [ TURN PAGE ]                                           │
+└──────────────────────────────────────────────────────────┘
+
+Action
+
+	-Turn page → GamePanel (Option bonus : petite animation fade-in/fade-out)
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 7 — Game Panel “Le livre + la carte”
+
+C’est ton écran principal.
+
+┌──────────────────────────────────────────────────────────┐
+│  HUD (haut)                                              │
+│  Azrael LVL 7  XP 7000/12200   ATK 26 DEF 18 HP 55/55    │
+│  Gate: (x,y)   Mode: Gate | Map: 39x39                   │
+│  ------------------------------------------------------- │
+│  [LEFT] Mini-map (9x9 ou 11x11)      [RIGHT] Event Log   │
+│  ┌───────────────┐                 ┌───────────────────┐ │
+│  │ . . . V . .   │                 │ - You moved North │ │
+│  │ . . . . . .   │                 │ - A Watcher...    │ │
+│  │ . . . @ . .   │                 │                   │ │
+│  └───────────────┘                 └───────────────────┘ │
+│                                                          │
+│  Controls (bas)                                          │
+│   [N] [E] [S] [W]     [STATS] [MENU] [SWITCH VIEW]       │
+└──────────────────────────────────────────────────────────┘
+
+Composants
+
+	-Mini-map : JTextArea monospaced (très simple) ou grille JLabels
+	-Event Log : JTextArea scrollable
+	-Boutons directionnels + keybindings flèches/WASD
+	-Bouton Switch View (bonus runtime)
+
+Règle
+
+	-À chaque action : refresh HUD + map + log.
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 8 — Encounter Panel “Rencontre / choix Fight/Run”
+
+Quand tu marches sur un ennemi, tu bascules ici.
+
+┌──────────────────────────────────────────────────────────┐
+│  ENCOUNTER                                               │
+│  ------------------------------------------------------- │
+│  [LEFT: gravure d’ange]     A Watcher descends before you│
+│                                                          │
+│  Villain: Watcher   Power: 12                            │
+│                                                          |
+│  [ FIGHT ]                 [ RUN (50%) ]                 │
+│                                                          │
+│  hint: “If fate refuses, steel will answer.”             │
+└──────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 9 — Battle Panel “Heaven vs Abyss”
+
+Seulement pour les combats (c’est là que ça claque).
+
+┌──────────────────────────────────────────────────────────┐
+│ ┌────────────── HEAVEN ──────────────┐                   │
+│ │ Watcher                            │                   │
+│ │ HP ████████████                    │                   │
+│ └────────────────────────────────────┘                   │
+│                                                          │
+│  Combat Log (centre)                                     │
+│  “You strike… The light recoils.”                        │
+│  “The Watcher wounds you.”                               │
+│                                                          │
+│ ┌────────────── ABYSS ───────────────┐                   │
+│ │ Azrael (Revenant)                  │                   │
+│ │ HP ██████████                      │                   │
+│ └────────────────────────────────────┘                   │
+│                                                          │
+│  [ NEXT TURN ]   (ou auto-advance)                       │
+└──────────────────────────────────────────────────────────┘
+
+Option simple
+
+	-Pas besoin de vraie animation : tu ajoutes 1–2 lignes au log par “tour”.
+	-NEXT TURN avance la simulation étape par étape.
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 10 — Loot Panel “Relic found”
+
+Après victoire (si drop).
+
+┌──────────────────────────────────────────────────────────┐
+│  RELIC UNVEILED                                          │
+│  ------------------------------------------------------- │
+│  [Icon/mini gravure]  Crown of Memory (+12 HP)           │
+│                                                          │
+│  “A fragment of what you were.”                          │
+│                                                          │
+│  [ CLAIM IT ]        [ LEAVE IT ]                        │
+└──────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 11 — Level Up Panel “Ascendance”
+
+À chaque level up (petit interlude).
+
+┌──────────────────────────────────────────────────────────┐
+│  LEVEL ASCENDED                                          │
+│  ------------------------------------------------------- │
+│  [gravure: choir / wings]                                │
+│                                                          │
+│  “The Choir falls silent. They know your name now.”      │
+│                                                          │
+│  New Level: 10                                           │
+│  [ CONTINUE ]                                            │
+└──────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 12 — Victory “Exit reached / Gate”
+
+Quand tu atteins la sortie de la map.
+
+┌──────────────────────────────────────────────────────────┐
+│  THE BORDER SHATTERS                                     │
+│  ------------------------------------------------------- │
+│  “You step beyond the Trial.”                            │
+│                                                          │
+│  [ CONTINUE ASCENT ]                                     │
+└──────────────────────────────────────────────────────────┘
+
+    Si niveau < 15 : Continue → PageTurnPanel → nouvelle map
+
+    Si niveau == 15 : Continue → FinalBossIntroPanel
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 13 — Final Boss Intro “Le Tribunal”
+
+┌──────────────────────────────────────────────────────────┐
+│  THE THRESHOLD                                           │
+│  ------------------------------------------------------- │
+│  [gravure énorme: archange]                              │
+│                                                          |
+│  “You climbed. You endured. You were never forgiven.”    │
+│                                                          │
+│  [ FACE THE ARCHANGEL ]                                  │
+└──────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 14 — Final Boss Battle (impossible)
+
+Même UI que Battle Panel, mais stats “incommensurables”.
+
+HEAVEN: ARCHANGEL (Judgment)
+ATK: Absolute  DEF: Absolute  HP: Unmeasurable
+
+
+Déroulé en 1–2 tours max, mais présenté comme un vrai combat.
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Écran 15 — Ending “The Fall is Eternal”
+
+┌──────────────────────────────────────────────────────────┐
+│  THE FALL IS ETERNAL                                     │
+│  ------------------------------------------------------- │
+│  “This is not punishment. This is correction.”           │
+│                                                          │
+│  [ RETURN TO COVER ]   [ QUIT ]                          │
+└──────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+Bonus utile : commandes GUI (sans surcharger)
+
+MENU : revient au menu pause
+
+STATS : ouvre Hero Sheet (lecture seule)
+
+SWITCH VIEW : bonus runtime console/gui
+
+Keybindings : flèches / WASD, Enter, Esc

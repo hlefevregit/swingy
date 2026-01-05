@@ -14,8 +14,19 @@ public interface View {
     String promptMenuChoice();
     void showHeroList(List<Hero> heroes);
 
+    /**
+     * Prompt the user to select a hero from the given list. Returns the user's raw input (console) or
+     * a selection string (GUI) - should be parsed by the caller.
+     */
+    String promptSelectHero(List<Hero> heroes);
+
+    /**
+     * Display a full hero sheet; GUI should show a dedicated panel, console should print lines.
+     */
+    void showHeroDetails(Hero hero);
+
     CreateHeroInput promptCreateHero();
-    CreateHeroInput promptSelectHero(List<Hero> heroes);
+    
     
     void showGameHud(GameState state);
     void showMap(String render);
@@ -30,4 +41,12 @@ public interface View {
 
     void showMessage(String message);
     String promptSelectHeroChoice();
+
+    /**
+     * Optional lifecycle hook to allow the view to release resources / close UI.
+     * Default implementation is a no-op for console-based views.
+     */
+    default void close() {
+        // no-op
+    }
 }

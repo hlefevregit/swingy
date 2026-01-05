@@ -54,10 +54,10 @@ public class MovementService {
         int y = current.getY();
         
         switch (direction.toUpperCase()) {
-            case "N": y--; break;
+            case "W": y--; break;
             case "S": y++; break;
-            case "E": x++; break;
-            case "W": x--; break;
+            case "D": x++; break;
+            case "A": x--; break;
             default: break;
         }
         
@@ -69,10 +69,10 @@ public class MovementService {
      */
     private String getDirectionName(String direction) {
         switch (direction.toUpperCase()) {
-            case "N": return "North";
-            case "S": return "South";
-            case "E": return "East";
             case "W": return "West";
+            case "S": return "South";
+            case "D": return "East";
+            case "A": return "West";
             default: return "somewhere";
         }
     }

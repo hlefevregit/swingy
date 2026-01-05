@@ -29,6 +29,7 @@ public class GameController {
         while (running) {
             view.showMainMenu();
             String choice = view.promptMenuChoice();
+            System.out.println("GameController: received menu choice -> '" + choice + "'");
             if (choice == null) {
                 view.showMessage("Choix invalide.");
                 continue;
@@ -61,6 +62,11 @@ public class GameController {
                     break;
                 case "4":
                     view.showMessage("Au revoir.");
+                    // Close GUI resources if any, then stop the loop
+                    try {
+                        view.close();
+                    } catch (Exception ignored) {
+                    }
                     running = false;
                     break;
                 default:
@@ -71,6 +77,11 @@ public class GameController {
         // Fermer la connexion à la DB
         if (heroRepository instanceof JdbcHeroRepository) {
             ((JdbcHeroRepository) heroRepository).close();
+        }
+        // Ensure the JVM exits cleanly (dispose GUI windows may not always terminate AWT threads)
+        try {
+            System.exit(0);
+        } catch (SecurityException ignored) {
         }
     }
     
@@ -94,47 +105,61 @@ public class GameController {
             
             view.showMessage("\n0. Back to menu\n");
             
-            // Demander le choix
-            String input = view.promptSelectHeroChoice();
-            if (input == null || input.trim().isEmpty()) {
+            // Use view.promptSelectHero which for GUI will show the select panel, and for console will print and read.
+            String sel = view.promptSelectHero(heroes);
+            if (sel == null || sel.trim().isEmpty()) {
                 view.showMessage("Invalid choice.");
                 return;
             }
-            
+            sel = sel.trim();
+
+            // Delete action (format: D<n>)
+            if (sel.startsWith("D") || sel.startsWith("d")) {
+                String num = sel.substring(1);
+                int idx;
+                try {
+                    idx = Integer.parseInt(num);
+                } catch (NumberFormatException e) {
+                    view.showMessage("Invalid delete command.");
+                    return;
+                }
+                if (idx < 1 || idx > heroes.size()) {
+                    view.showMessage("Invalid index for delete.");
+                    return;
+                }
+                Hero toDelete = heroes.get(idx - 1);
+                boolean deleted = heroRepository.deleteByName(toDelete.getName());
+                if (deleted) view.showMessage("Deleted " + toDelete.getName());
+                else view.showMessage("Failed to delete " + toDelete.getName());
+                return;
+            }
+
+            // Back command
+            if ("0".equals(sel)) {
+                return;
+            }
+
+            // Otherwise expect a number for selection
             int choice;
             try {
-                choice = Integer.parseInt(input.trim());
+                choice = Integer.parseInt(sel);
             } catch (NumberFormatException e) {
                 view.showMessage("Invalid number.");
                 return;
             }
-            
-            // Retour au menu
-            if (choice == 0) {
-                return;
-            }
-            
-            // Vérifier le choix
             if (choice < 1 || choice > heroes.size()) {
                 view.showMessage("Invalid choice. Please select a number between 1 and " + heroes.size());
                 return;
             }
-            
-            // Récupérer le héros choisi
             Hero selectedHero = heroes.get(choice - 1);
-            
-            // Afficher les stats du héros
             view.showMessage("\n✓ Selected hero:\n");
             menuController.displayHeroStats(selectedHero);
-            
-            // Lancer le jeu avec ce héros
             startGameWithHero(selectedHero, view);
-            
         } catch (Exception e) {
             view.showMessage("Error loading heroes: " + e.getMessage());
         }
     }
-    
+
     private void startGameWithHero(Hero hero, View view) {
         // Créer le contrôleur de boucle de jeu et lancer
         GameLoopController gameLoop = new GameLoopController(view, heroRepository);
