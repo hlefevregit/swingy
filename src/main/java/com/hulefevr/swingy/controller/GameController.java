@@ -27,7 +27,7 @@ public class GameController {
         boolean running = true;
 
         while (running) {
-            view.showMainMenu();
+            // promptMenuChoice affiche déjà le menu, pas besoin d'appeler showMainMenu
             String choice = view.promptMenuChoice();
             System.out.println("GameController: received menu choice -> '" + choice + "'");
             if (choice == null) {
@@ -48,8 +48,8 @@ public class GameController {
                         } catch (Exception e) {
                             view.showMessage("✗ Error saving hero: " + e.getMessage());
                         }
-                        // TODO: Lancer le jeu avec ce héros
-                        view.showMessage("Game start will be implemented soon.");
+                        // Lancer le jeu avec le nouveau héros
+                        startGameWithHero(newHero, view);
                     }
                     break;
                 case "2":
@@ -94,19 +94,23 @@ public class GameController {
                 return;
             }
             
-            view.showMessage("\n=== Saved Heroes ===\n");
-            
-            // Afficher tous les héros avec leurs stats
-            for (int i = 0; i < heroes.size(); i++) {
-                Hero hero = heroes.get(i);
-                view.showMessage((i + 1) + ". " + hero.getName() + " (" + hero.getHeroClass() + 
-                                 ") - Level " + hero.getLevel() + " - " + hero.getXp() + " XP");
+            // Pour la console, afficher la liste. Pour la GUI, le SelectHeroPanel l'affiche déjà
+            if (!(view instanceof com.hulefevr.swingy.view.gui.GuiView)) {
+                view.showMessage("\n=== Saved Heroes ===\n");
+                
+                // Afficher tous les héros avec leurs stats
+                for (int i = 0; i < heroes.size(); i++) {
+                    Hero hero = heroes.get(i);
+                    view.showMessage((i + 1) + ". " + hero.getName() + " (" + hero.getHeroClass() + 
+                                     ") - Level " + hero.getLevel() + " - " + hero.getXp() + " XP");
+                }
+                
+                view.showMessage("\n0. Back to menu\n");
             }
-            
-            view.showMessage("\n0. Back to menu\n");
             
             // Use view.promptSelectHero which for GUI will show the select panel, and for console will print and read.
             String sel = view.promptSelectHero(heroes);
+            System.out.println("GameController.selectExistingHero: received selection -> '" + sel + "'");
             if (sel == null || sel.trim().isEmpty()) {
                 view.showMessage("Invalid choice.");
                 return;
@@ -152,25 +156,48 @@ public class GameController {
                 return;
             }
             Hero selectedHero = heroes.get(choice - 1);
-            view.showMessage("\n✓ Selected hero:\n");
-            menuController.displayHeroStats(selectedHero);
+            // view.showMessage("\n✓ Selected hero:\n");
+            // menuController.displayHeroStats(selectedHero);
+            System.out.println("GameController: Starting game with hero " + selectedHero.getName());
             startGameWithHero(selectedHero, view);
+            System.out.println("GameController: Game finished, returning to menu");
         } catch (Exception e) {
             view.showMessage("Error loading heroes: " + e.getMessage());
         }
     }
 
     private void startGameWithHero(Hero hero, View view) {
-        // Créer le contrôleur de boucle de jeu et lancer
-        GameLoopController gameLoop = new GameLoopController(view, heroRepository);
-        gameLoop.startGameLoop(hero);
+        System.out.println("GameController: Starting game loop in background thread");
         
-        // Sauvegarder le héros après la partie (XP, level, artefacts)
+        // Lancer la boucle de jeu dans un thread séparé pour ne pas bloquer
+        Thread gameThread = new Thread(() -> {
+            try {
+                // Créer le contrôleur de boucle de jeu et lancer
+                GameLoopController gameLoop = new GameLoopController(view, heroRepository);
+                gameLoop.startGameLoop(hero);
+                
+                // Sauvegarder le héros après la partie (XP, level, artefacts)
+                try {
+                    heroRepository.save(hero);
+                    view.showMessage("\n✓ Progress saved!");
+                } catch (Exception e) {
+                    view.showMessage("\n✗ Error saving progress: " + e.getMessage());
+                }
+            } catch (Exception e) {
+                System.err.println("Error in game loop: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+        
+        gameThread.setName("GameLoop-Thread");
+        gameThread.start();
+        
+        // Attendre que le thread se termine avant de retourner au menu
         try {
-            heroRepository.save(hero);
-            view.showMessage("\n✓ Progress saved!");
-        } catch (Exception e) {
-            view.showMessage("\n✗ Error saving progress: " + e.getMessage());
+            gameThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Game thread interrupted");
         }
     }
 

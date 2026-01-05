@@ -102,6 +102,9 @@ public class GameLoopController {
                         
                         // Gérer le combat
                         playerDead = handleEncounter(hero, encounter, gameState);
+                        
+                        // Rafraîchir l'affichage après le combat
+                        view.showGameHud(gameState);
                     }
                 }
             }

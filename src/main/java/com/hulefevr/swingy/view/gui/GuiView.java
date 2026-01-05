@@ -16,6 +16,8 @@ import javax.swing.*;
  */
 public class GuiView implements View {
     private GuiWindow window;
+    private com.hulefevr.swingy.model.ennemy.Villain currentVillain;
+    private com.hulefevr.swingy.model.hero.Hero currentHero;
 
     public GuiView() {
         // Initialize Swing window on the Event Dispatch Thread
@@ -128,21 +130,21 @@ public class GuiView implements View {
     @Override
     public void showGameHud(GameState state) {
         if (window != null) {
-            StringBuilder sb = new StringBuilder();
-            if (state.getHero() != null) {
-                sb.append("Hero: ").append(state.getHero().getName()).append("\n");
-                sb.append("Level: ").append(state.getHero().getLevel()).append("\n");
-                sb.append("XP: ").append(state.getHero().getXp()).append("\n");
+            if (state != null && state.getHero() != null) {
+                this.currentHero = state.getHero();
             }
-            window.showMessageNonBlocking("HUD", sb.toString());
+            window.showGame(state);
             return;
         }
     }
 
     @Override
     public void showMap(String render) {
+        // La map est affichée graphiquement dans le GamePanel
+        // On peut ignorer le rendu texte pour la GUI
+        // Ou l'ajouter comme message si nécessaire pour le debug
         if (window != null) {
-            window.showMessageNonBlocking("Map", render);
+            // Ne rien faire, la map est rendue graphiquement
             return;
         }
         JOptionPane.showMessageDialog(null, render);
@@ -151,10 +153,9 @@ public class GuiView implements View {
     @Override
     public MoveInput promptMove() {
         if (window != null) {
-            String[] opts = new String[]{"N", "S", "E", "W", "Q"};
-            String choice = window.showMessageAndWait("Move", "Choose direction:", opts);
-            if (choice == null) return new MoveInput("Q");
-            return new MoveInput(choice);
+            // Utiliser le système d'attente du GamePanel
+            String direction = window.waitForMoveInput();
+            return new MoveInput(direction);
         }
         String direction = JOptionPane.showInputDialog("Move (N/S/E/W):");
         return new MoveInput(direction);
@@ -163,9 +164,10 @@ public class GuiView implements View {
     @Override
     public void showEncounter(Encounter encounter) {
         if (window != null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("You encountered: ").append(encounter.getEnemy().getName()).append("\n");
-            window.showMessageNonBlocking("Encounter", sb.toString());
+            String message = "⚔ Encounter: " + encounter.getEnemy().getName() + " (Level " + encounter.getEnemy().getLevel() + ")";
+            window.addGameMessage(message);
+            // Stocker l'ennemi pour l'EncounterPanel
+            this.currentVillain = encounter.getEnemy();
             return;
         }
         JOptionPane.showMessageDialog(null, "Encounter!");
@@ -173,6 +175,13 @@ public class GuiView implements View {
 
     @Override
     public FightRunInput promptFightOrRun() {
+        if (window != null && currentHero != null && currentVillain != null) {
+            // Utiliser l'EncounterPanel
+            String choice = window.showEncounterAndWait(currentHero, currentVillain);
+            // Retourner au jeu après le choix
+            window.returnToGame();
+            return new FightRunInput(choice);
+        }
         if (window != null) {
             String[] opts = new String[]{"F", "R"};
             String choice = window.showMessageAndWait("Battle", "Fight or Run?", opts);
@@ -224,7 +233,8 @@ public class GuiView implements View {
     @Override
     public void showMessage(String message) {
         if (window != null) {
-            window.showMessageNonBlocking(null, message);
+            // Ajouter le message dans le GamePanel au lieu d'un dialogue
+            window.addGameMessage(message);
             return;
         }
         JOptionPane.showMessageDialog(null, message);

@@ -17,6 +17,8 @@ public class GuiWindow extends JFrame {
     private com.hulefevr.swingy.view.gui.screens.HeroSheetPanel heroSheetPanel;
     private com.hulefevr.swingy.view.gui.screens.MessagePanel messagePanel;
     private com.hulefevr.swingy.view.gui.screens.InputPanel inputPanel;
+    private com.hulefevr.swingy.view.gui.screens.GamePanel gamePanel;
+    private com.hulefevr.swingy.view.gui.screens.EncounterPanel encounterPanel;
 
     public static final String SPLASH = "splash";
     public static final String MAIN_MENU = "main_menu";
@@ -25,6 +27,8 @@ public class GuiWindow extends JFrame {
     public static final String HERO_SHEET = "hero_sheet";
     public static final String MESSAGE = "message";
     public static final String INPUT = "input";
+    public static final String GAME = "game";
+    public static final String ENCOUNTER = "encounter";
 
     public GuiWindow() {
         super("Swingy - The Book of the Fallen");
@@ -40,6 +44,8 @@ public class GuiWindow extends JFrame {
     heroSheetPanel = new com.hulefevr.swingy.view.gui.screens.HeroSheetPanel();
     messagePanel = new com.hulefevr.swingy.view.gui.screens.MessagePanel();
     inputPanel = new com.hulefevr.swingy.view.gui.screens.InputPanel();
+    gamePanel = new com.hulefevr.swingy.view.gui.screens.GamePanel();
+    encounterPanel = new com.hulefevr.swingy.view.gui.screens.EncounterPanel();
 
     root.add(splash, SPLASH);
     root.add(mainMenuPanel, MAIN_MENU);
@@ -48,6 +54,8 @@ public class GuiWindow extends JFrame {
     root.add(heroSheetPanel, HERO_SHEET);
     root.add(messagePanel, MESSAGE);
     root.add(inputPanel, INPUT);
+    root.add(gamePanel, GAME);
+    root.add(encounterPanel, ENCOUNTER);
 
         setContentPane(root);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -214,5 +222,108 @@ public class GuiWindow extends JFrame {
      */
     public void showSplash() {
         SwingUtilities.invokeLater(() -> cards.show(root, SPLASH));
+    }
+    
+    /**
+     * Affiche l'écran de jeu avec l'état actuel
+     */
+    public void showGame(com.hulefevr.swingy.model.game.GameState gameState) {
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                gamePanel.updateGameState(gameState);
+                cards.show(root, GAME);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            // Fallback si erreur
+            SwingUtilities.invokeLater(() -> {
+                gamePanel.updateGameState(gameState);
+                cards.show(root, GAME);
+                root.revalidate();
+                root.repaint();
+            });
+        }
+    }
+    
+    /**
+     * Met à jour l'état du jeu affiché
+     */
+    public void updateGameState(com.hulefevr.swingy.model.game.GameState gameState) {
+        SwingUtilities.invokeLater(() -> {
+            gamePanel.updateGameState(gameState);
+        });
+    }
+    
+    /**
+     * Ajoute un message dans le panneau de jeu
+     */
+    public void addGameMessage(String message) {
+        SwingUtilities.invokeLater(() -> {
+            gamePanel.addMessage(message);
+        });
+    }
+    
+    /**
+     * Accès au GamePanel pour définir les actions
+     */
+    public com.hulefevr.swingy.view.gui.screens.GamePanel getGamePanel() {
+        return gamePanel;
+    }
+    
+    /**
+     * Affiche le jeu et attend que le joueur fasse un mouvement.
+     * Bloque jusqu'à ce qu'un bouton de direction soit cliqué.
+     * IMPORTANT: Ne doit PAS être appelée depuis l'EDT !
+     */
+    public String waitForMoveInput() {
+        // S'assurer que les boutons sont configurés pour notifier
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                gamePanel.setupMoveWaiting();
+            });
+        } catch (Exception e) {
+            // Si erreur, essayer quand même
+            SwingUtilities.invokeLater(() -> {
+                gamePanel.setupMoveWaiting();
+            });
+        }
+        
+        // Attendre le mouvement (bloquant, mais pas sur EDT)
+        return gamePanel.waitForMove();
+    }
+    
+    /**
+     * Affiche le panneau de combat et attend le choix du joueur.
+     * IMPORTANT: Ne doit PAS être appelée depuis l'EDT !
+     */
+    public String showEncounterAndWait(com.hulefevr.swingy.model.hero.Hero hero, com.hulefevr.swingy.model.ennemy.Villain villain) {
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                encounterPanel.setEncounter(hero, villain);
+                encounterPanel.setupChoiceWaiting();
+                cards.show(root, ENCOUNTER);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            SwingUtilities.invokeLater(() -> {
+                encounterPanel.setEncounter(hero, villain);
+                encounterPanel.setupChoiceWaiting();
+                cards.show(root, ENCOUNTER);
+            });
+        }
+        
+        // Attendre le choix (Fight ou Run)
+        return encounterPanel.waitForChoice();
+    }
+    
+    /**
+     * Retourne au panneau de jeu
+     */
+    public void returnToGame() {
+        SwingUtilities.invokeLater(() -> {
+            cards.show(root, GAME);
+        });
     }
 }
