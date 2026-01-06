@@ -206,9 +206,9 @@ public class GuiView implements View {
     @Override
     public LootChoiceInput promptLootChoice(Artifact drop) {
         if (window != null) {
-            String[] opts = new String[]{"T", "L"};
-            String choice = window.showMessageAndWait("Loot", "Take loot: " + drop.getName() + "?", opts);
+            String choice = window.showLootAndWait(drop);
             if (choice == null) choice = "L";
+            window.returnToGame(); // Retour au GamePanel
             return new LootChoiceInput(choice);
         }
         int result = JOptionPane.showConfirmDialog(null, "Take loot: " + drop.getName() + "?", 

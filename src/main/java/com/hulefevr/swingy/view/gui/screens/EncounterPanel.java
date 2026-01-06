@@ -40,6 +40,7 @@ public class EncounterPanel extends JPanel {
         
         initComponents();
         layoutComponents();
+        setupKeyBindings();
     }
     
     private void initComponents() {
@@ -250,5 +251,33 @@ public class EncounterPanel extends JPanel {
             pendingChoice = choice;
             choiceLock.notifyAll();
         }
+    }
+    
+    /**
+     * Configure les raccourcis clavier F et R
+     */
+    private void setupKeyBindings() {
+        InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getActionMap();
+        
+        // F pour Fight
+        inputMap.put(KeyStroke.getKeyStroke('f'), "fight");
+        inputMap.put(KeyStroke.getKeyStroke('F'), "fight");
+        actionMap.put("fight", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                btnFight.doClick();
+            }
+        });
+        
+        // R pour Run
+        inputMap.put(KeyStroke.getKeyStroke('r'), "run");
+        inputMap.put(KeyStroke.getKeyStroke('R'), "run");
+        actionMap.put("run", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                btnRun.doClick();
+            }
+        });
     }
 }

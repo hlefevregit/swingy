@@ -19,6 +19,7 @@ public class GuiWindow extends JFrame {
     private com.hulefevr.swingy.view.gui.screens.InputPanel inputPanel;
     private com.hulefevr.swingy.view.gui.screens.GamePanel gamePanel;
     private com.hulefevr.swingy.view.gui.screens.EncounterPanel encounterPanel;
+    private com.hulefevr.swingy.view.gui.screens.LootPanel lootPanel;
 
     public static final String SPLASH = "splash";
     public static final String MAIN_MENU = "main_menu";
@@ -29,6 +30,7 @@ public class GuiWindow extends JFrame {
     public static final String INPUT = "input";
     public static final String GAME = "game";
     public static final String ENCOUNTER = "encounter";
+    public static final String LOOT = "loot";
 
     public GuiWindow() {
         super("Swingy - The Book of the Fallen");
@@ -46,6 +48,7 @@ public class GuiWindow extends JFrame {
     inputPanel = new com.hulefevr.swingy.view.gui.screens.InputPanel();
     gamePanel = new com.hulefevr.swingy.view.gui.screens.GamePanel();
     encounterPanel = new com.hulefevr.swingy.view.gui.screens.EncounterPanel();
+    lootPanel = new com.hulefevr.swingy.view.gui.screens.LootPanel();
 
     root.add(splash, SPLASH);
     root.add(mainMenuPanel, MAIN_MENU);
@@ -56,6 +59,7 @@ public class GuiWindow extends JFrame {
     root.add(inputPanel, INPUT);
     root.add(gamePanel, GAME);
     root.add(encounterPanel, ENCOUNTER);
+    root.add(lootPanel, LOOT);
 
         setContentPane(root);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -316,6 +320,31 @@ public class GuiWindow extends JFrame {
         
         // Attendre le choix (Fight ou Run)
         return encounterPanel.waitForChoice();
+    }
+    
+    /**
+     * Affiche le panel de loot et attend le choix (T = Take, L = Leave).
+     * Caller MUST NOT be on the EDT.
+     */
+    public String showLootAndWait(com.hulefevr.swingy.model.artifact.Artifact artifact) {
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                lootPanel.setArtifact(artifact);
+                lootPanel.setupChoiceWaiting();
+                cards.show(root, LOOT);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            SwingUtilities.invokeLater(() -> {
+                lootPanel.setArtifact(artifact);
+                lootPanel.setupChoiceWaiting();
+                cards.show(root, LOOT);
+            });
+        }
+        
+        // Attendre le choix (T = Take, L = Leave)
+        return lootPanel.waitForChoice();
     }
     
     /**
