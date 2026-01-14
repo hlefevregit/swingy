@@ -111,6 +111,11 @@ public class ConsoleRenderer implements View {
     public void showMessage(String message) {
         System.out.println(message);
     }
+    
+    @Override
+    public void showLevelUp(int newLevel, String message) {
+        System.out.println(message);
+    }
 
     @Override
     public void showHeroDetails(Hero hero) {

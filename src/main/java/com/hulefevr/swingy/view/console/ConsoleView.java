@@ -102,6 +102,12 @@ public class ConsoleView implements View {
 	public void showMessage(String message) {
 		System.out.println(message);
 	}
+	
+	@Override
+	public void showLevelUp(int newLevel, String message) {
+		// Console affiche juste le message
+		System.out.println(message);
+	}
 
 	@Override
 	public String promptSelectHero(List<Hero> heroes) {

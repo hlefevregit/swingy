@@ -18,6 +18,7 @@ public class GuiView implements View {
     private GuiWindow window;
     private com.hulefevr.swingy.model.ennemy.Villain currentVillain;
     private com.hulefevr.swingy.model.hero.Hero currentHero;
+    private boolean splashShown = false;
 
     public GuiView() {
         // Initialize Swing window on the Event Dispatch Thread
@@ -53,9 +54,22 @@ public class GuiView implements View {
 
     @Override
     public String promptMenuChoice() {
-        // Show a modal dialog containing the MainMenuPanel and return the user's choice
-        final String[] result = new String[1];
-
+        // La première fois, attendre que le splash soit passé
+        if (!splashShown) {
+            splashShown = true;
+            // Attendre que la fenêtre soit initialisée
+            while (window == null) {
+                try {
+                    Thread.sleep(2500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            // Le splash est déjà affiché, attendre juste un moment pour qu'il soit visible
+            // Le bouton "OPEN THE BOOK" appellera showMainMenu()
+            // On ne fait rien ici, on laisse juste le splash visible
+        }
+        
         // Show main menu inside the main window and wait for selection.
         // This method should not be called on the EDT because it blocks until user chooses.
         try {
@@ -246,6 +260,15 @@ public class GuiView implements View {
             return window.showInputAndWait("Select Hero", "Select hero number (or 0 to go back):");
         }
         return JOptionPane.showInputDialog("Select hero number (or 0 to go back):");
+    }
+    
+    @Override
+    public void showLevelUp(int newLevel, String message) {
+        if (window != null) {
+            window.showLevelUpAndWait(newLevel, message);
+        } else {
+            JOptionPane.showMessageDialog(null, message + "\n\nNew Level: " + newLevel);
+        }
     }
 
     // Méthodes spécifiques GUI (anciennes)

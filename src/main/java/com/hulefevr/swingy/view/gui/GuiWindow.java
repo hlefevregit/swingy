@@ -20,6 +20,7 @@ public class GuiWindow extends JFrame {
     private com.hulefevr.swingy.view.gui.screens.GamePanel gamePanel;
     private com.hulefevr.swingy.view.gui.screens.EncounterPanel encounterPanel;
     private com.hulefevr.swingy.view.gui.screens.LootPanel lootPanel;
+    private com.hulefevr.swingy.view.gui.screens.LevelUpPanel levelUpPanel;
 
     public static final String SPLASH = "splash";
     public static final String MAIN_MENU = "main_menu";
@@ -31,6 +32,7 @@ public class GuiWindow extends JFrame {
     public static final String GAME = "game";
     public static final String ENCOUNTER = "encounter";
     public static final String LOOT = "loot";
+    public static final String LEVEL_UP = "level_up";
 
     public GuiWindow() {
         super("Swingy - The Book of the Fallen");
@@ -49,6 +51,7 @@ public class GuiWindow extends JFrame {
     gamePanel = new com.hulefevr.swingy.view.gui.screens.GamePanel();
     encounterPanel = new com.hulefevr.swingy.view.gui.screens.EncounterPanel();
     lootPanel = new com.hulefevr.swingy.view.gui.screens.LootPanel();
+    levelUpPanel = new com.hulefevr.swingy.view.gui.screens.LevelUpPanel();
 
     root.add(splash, SPLASH);
     root.add(mainMenuPanel, MAIN_MENU);
@@ -60,6 +63,7 @@ public class GuiWindow extends JFrame {
     root.add(gamePanel, GAME);
     root.add(encounterPanel, ENCOUNTER);
     root.add(lootPanel, LOOT);
+    root.add(levelUpPanel, LEVEL_UP);
 
         setContentPane(root);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -225,7 +229,8 @@ public class GuiWindow extends JFrame {
      * Affiche l'écran de splash
      */
     public void showSplash() {
-        SwingUtilities.invokeLater(() -> cards.show(root, SPLASH));
+        SwingUtilities.invokeLater(() -> cards.show(root, SPLASH))
+        ;
     }
     
     /**
@@ -354,5 +359,37 @@ public class GuiWindow extends JFrame {
         SwingUtilities.invokeLater(() -> {
             cards.show(root, GAME);
         });
+    }
+    
+    /**
+     * Affiche l'écran épique de level up et attend que l'utilisateur continue.
+     * Caller MUST NOT be on the EDT.
+     */
+    public void showLevelUpAndWait(int newLevel, String message) {
+        System.out.println("DEBUG GuiWindow: showLevelUpAndWait called with level " + newLevel);
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                System.out.println("DEBUG GuiWindow: Setting up level up panel on EDT");
+                levelUpPanel.setLevelUp(newLevel, message);
+                cards.show(root, LEVEL_UP);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                levelUpPanel.setLevelUp(newLevel, message);
+                cards.show(root, LEVEL_UP);
+            });
+        }
+        
+        System.out.println("DEBUG GuiWindow: Waiting for user to click continue...");
+        // Attendre que l'utilisateur clique sur CONTINUE
+        levelUpPanel.waitForContinue();
+        System.out.println("DEBUG GuiWindow: User clicked continue, returning to game");
+        
+        // Retourner au jeu
+        returnToGame();
     }
 }

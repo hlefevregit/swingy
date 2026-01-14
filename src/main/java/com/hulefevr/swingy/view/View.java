@@ -41,6 +41,13 @@ public interface View {
 
     void showMessage(String message);
     String promptSelectHeroChoice();
+    
+    /**
+     * Show the level up screen with epic presentation.
+     * For GUI: shows dedicated level-up panel with the hero's new level and narrative message.
+     * For console: prints the message using showMessage.
+     */
+    void showLevelUp(int newLevel, String message);
 
     /**
      * Optional lifecycle hook to allow the view to release resources / close UI.

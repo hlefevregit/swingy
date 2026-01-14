@@ -5,6 +5,7 @@ import com.hulefevr.swingy.model.ennemy.Villain;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Panel pour afficher un combat entre le héros et un ennemi
@@ -19,248 +20,229 @@ public class EncounterPanel extends JPanel {
     private JProgressBar villainHpBar;
     private JLabel heroNameLabel;
     private JProgressBar heroHpBar;
-    private JLabel messageLabel;
+    private JTextArea messageArea;
     private JButton btnFight;
     private JButton btnRun;
+    private BackgroundPanel backgroundPanel;
     
-    // Pour gérer l'attente de choix
-    private final Object choiceLock = new Object();
-    private String pendingChoice = null;
+    private CountDownLatch choiceLatch;
+    private String choiceResult;
     
     // Couleurs du thème
-    private static final Color PARCHMENT = new Color(220, 205, 175);
-    private static final Color DARK_BROWN = new Color(40, 30, 20);
-    private static final Color BORDER_GOLD = new Color(160, 140, 90);
+    private static final Color PARCHMENT = new Color(245, 238, 228);
+    private static final Color DARK_STONE = new Color(46, 44, 40);
+    private static final Color BORDER_DARK = new Color(80, 76, 70);
     private static final Color HP_RED = new Color(139, 0, 0);
-    private static final Color HP_BG = new Color(100, 100, 100);
+    private static final Color HP_BG = new Color(60, 60, 60);
     
     public EncounterPanel() {
         setLayout(new BorderLayout());
-        setBackground(DARK_BROWN);
+        setBackground(DARK_STONE);
+        buildUI();
+    }
+    
+    private void buildUI() {
+        // Main content avec bordures épaisses
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DARK_STONE, 12),
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_DARK, 4),
+                        BorderFactory.createLineBorder(DARK_STONE, 3)
+                )
+        ));
         
-        initComponents();
-        layoutComponents();
+        // Background panel avec l'image
+        backgroundPanel = new BackgroundPanel();
+        backgroundPanel.setLayout(new BorderLayout());
+        
+        // Title at top
+        titleLabel = new JLabel("HEAVEN VS ABYSS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 28));
+        titleLabel.setForeground(DARK_STONE);
+        titleLabel.setOpaque(true);
+        titleLabel.setBackground(PARCHMENT);
+        titleLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 3, 0, BORDER_DARK),
+                BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+        backgroundPanel.add(titleLabel, BorderLayout.NORTH);
+        
+        // Center overlay pour les infos de combat
+        JPanel centerOverlay = new JPanel(new BorderLayout());
+        centerOverlay.setOpaque(false);
+        
+        // Top row: Hero et Villain stats
+        JPanel statsRow = new JPanel(new BorderLayout(20, 0));
+        statsRow.setOpaque(false);
+        statsRow.setBorder(BorderFactory.createEmptyBorder(20, 40, 0, 40));
+        
+        // Villain panel (left)
+        JPanel villainPanel = createStatPanel(true);
+        villainNameLabel = new JLabel("Watcher", SwingConstants.CENTER);
+        villainNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
+        villainNameLabel.setForeground(DARK_STONE);
+        villainHpBar = createHpBar();
+        
+        JPanel villainContent = new JPanel(new BorderLayout(5, 5));
+        villainContent.setOpaque(false);
+        villainContent.add(villainNameLabel, BorderLayout.NORTH);
+        villainContent.add(villainHpBar, BorderLayout.CENTER);
+        villainPanel.add(villainContent, BorderLayout.CENTER);
+        
+        // Hero panel (right)
+        JPanel heroPanel = createStatPanel(false);
+        heroNameLabel = new JLabel("Azrael (Revenant)", SwingConstants.CENTER);
+        heroNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
+        heroNameLabel.setForeground(DARK_STONE);
+        heroHpBar = createHpBar();
+        
+        JPanel heroContent = new JPanel(new BorderLayout(5, 5));
+        heroContent.setOpaque(false);
+        heroContent.add(heroNameLabel, BorderLayout.NORTH);
+        heroContent.add(heroHpBar, BorderLayout.CENTER);
+        heroPanel.add(heroContent, BorderLayout.CENTER);
+        
+        statsRow.add(villainPanel, BorderLayout.WEST);
+        statsRow.add(heroPanel, BorderLayout.EAST);
+        centerOverlay.add(statsRow, BorderLayout.NORTH);
+        
+        // Message area in the center-bottom
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setOpaque(false);
+        messagePanel.setBorder(BorderFactory.createEmptyBorder(250, 60, 20, 60));
+        
+        messageArea = new JTextArea("You strike... The light recoils.");
+        messageArea.setEditable(false);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setFont(new Font("Serif", Font.ITALIC, 18));
+        messageArea.setForeground(DARK_STONE);
+        messageArea.setOpaque(true);
+        messageArea.setBackground(new Color(245, 238, 228, 200));
+        messageArea.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        messagePanel.add(messageArea, BorderLayout.CENTER);
+        
+        centerOverlay.add(messagePanel, BorderLayout.CENTER);
+        
+        // Bottom: Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 15));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+        
+        btnFight = createButton("FIGHT");
+        btnRun = createButton("RUN (50%)");
+        
+        btnFight.addActionListener(e -> recordChoice("F"));
+        btnRun.addActionListener(e -> recordChoice("R"));
+        
+        buttonPanel.add(btnFight);
+        buttonPanel.add(btnRun);
+        centerOverlay.add(buttonPanel, BorderLayout.SOUTH);
+        
+        backgroundPanel.add(centerOverlay, BorderLayout.CENTER);
+        mainPanel.add(backgroundPanel, BorderLayout.CENTER);
+        
+        add(mainPanel, BorderLayout.CENTER);
+        
         setupKeyBindings();
     }
     
-    private void initComponents() {
-        // Title
-        titleLabel = new JLabel("HEAVEN vs ABYSS", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Serif", Font.BOLD, 24));
-        titleLabel.setForeground(DARK_BROWN);
-        titleLabel.setOpaque(true);
-        titleLabel.setBackground(PARCHMENT);
-        
-        // Villain info
-        villainNameLabel = new JLabel("Enemy", SwingConstants.CENTER);
-        villainNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
-        villainNameLabel.setForeground(DARK_BROWN);
-        villainNameLabel.setOpaque(true);
-        villainNameLabel.setBackground(PARCHMENT);
-        
-        villainHpBar = new JProgressBar(0, 100);
-        villainHpBar.setStringPainted(true);
-        villainHpBar.setForeground(HP_RED);
-        villainHpBar.setBackground(HP_BG);
-        villainHpBar.setString("HP");
-        
-        // Hero info
-        heroNameLabel = new JLabel("Hero", SwingConstants.CENTER);
-        heroNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
-        heroNameLabel.setForeground(DARK_BROWN);
-        heroNameLabel.setOpaque(true);
-        heroNameLabel.setBackground(PARCHMENT);
-        
-        heroHpBar = new JProgressBar(0, 100);
-        heroHpBar.setStringPainted(true);
-        heroHpBar.setForeground(HP_RED);
-        heroHpBar.setBackground(HP_BG);
-        heroHpBar.setString("HP");
-        
-        // Message
-        messageLabel = new JLabel("What will you do?", SwingConstants.CENTER);
-        messageLabel.setFont(new Font("Serif", Font.ITALIC, 18));
-        messageLabel.setForeground(DARK_BROWN);
-        messageLabel.setOpaque(true);
-        messageLabel.setBackground(PARCHMENT);
-        
-        // Buttons
-        btnFight = createButton("FIGHT");
-        btnRun = createButton("RUN (50%)");
+    private JPanel createStatPanel(boolean isVillain) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(true);
+        panel.setBackground(PARCHMENT);
+        panel.setPreferredSize(new Dimension(280, 70));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_DARK, 3),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        return panel;
+    }
+    
+    private JProgressBar createHpBar() {
+        JProgressBar bar = new JProgressBar(0, 100);
+        bar.setValue(100);
+        bar.setStringPainted(true);
+        bar.setForeground(HP_RED);
+        bar.setBackground(HP_BG);
+        bar.setString("HP");
+        bar.setPreferredSize(new Dimension(0, 25));
+        return bar;
     }
     
     private JButton createButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Serif", Font.BOLD, 16));
-        btn.setBackground(DARK_BROWN);
+        btn.setFont(new Font("Serif", Font.BOLD, 18));
         btn.setForeground(PARCHMENT);
+        btn.setBackground(DARK_STONE);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 3),
-            BorderFactory.createEmptyBorder(15, 40, 15, 40)
+                BorderFactory.createLineBorder(BORDER_DARK, 3),
+                BorderFactory.createEmptyBorder(12, 40, 12, 40)
         ));
         return btn;
     }
     
-    private void layoutComponents() {
-        // Main panel avec bordures
-        JPanel mainContent = new JPanel(new BorderLayout(10, 10));
-        mainContent.setBackground(PARCHMENT);
-        mainContent.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(DARK_BROWN, 15),
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_GOLD, 3),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-            )
-        ));
-        
-        // Top: Title
-        mainContent.add(titleLabel, BorderLayout.NORTH);
-        
-        // Center: Combat info
-        JPanel centerPanel = new JPanel(new BorderLayout(20, 20));
-        centerPanel.setOpaque(false);
-        
-        // Villain panel (left)
-        JPanel villainPanel = new JPanel(new BorderLayout(5, 5));
-        villainPanel.setOpaque(false);
-        villainPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 2),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        villainPanel.add(villainNameLabel, BorderLayout.NORTH);
-        villainPanel.add(villainHpBar, BorderLayout.CENTER);
-        
-        // Hero panel (right)
-        JPanel heroPanel = new JPanel(new BorderLayout(5, 5));
-        heroPanel.setOpaque(false);
-        heroPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 2),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        heroPanel.add(heroNameLabel, BorderLayout.NORTH);
-        heroPanel.add(heroHpBar, BorderLayout.CENTER);
-        
-        // Combat visualization (center image placeholder)
-        JPanel combatArea = new JPanel();
-        combatArea.setBackground(new Color(50, 50, 50));
-        combatArea.setPreferredSize(new Dimension(400, 300));
-        combatArea.setBorder(BorderFactory.createLineBorder(BORDER_GOLD, 3));
-        
-        JPanel topRow = new JPanel(new GridLayout(1, 3, 10, 0));
-        topRow.setOpaque(false);
-        topRow.add(villainPanel);
-        topRow.add(combatArea);
-        topRow.add(heroPanel);
-        
-        centerPanel.add(topRow, BorderLayout.NORTH);
-        centerPanel.add(messageLabel, BorderLayout.CENTER);
-        
-        mainContent.add(centerPanel, BorderLayout.CENTER);
-        
-        // Bottom: Buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 10));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(btnFight);
-        buttonPanel.add(btnRun);
-        
-        mainContent.add(buttonPanel, BorderLayout.SOUTH);
-        
-        add(mainContent, BorderLayout.CENTER);
+    private void recordChoice(String choice) {
+        choiceResult = choice;
+        if (choiceLatch != null) {
+            choiceLatch.countDown();
+        }
     }
     
-    /**
-     * Configure le panel avec le héros et l'ennemi
-     */
     public void setEncounter(Hero hero, Villain villain) {
         this.hero = hero;
         this.villain = villain;
         
-        // Update labels
         heroNameLabel.setText(hero.getName() + " (" + hero.getHeroClass().getDisplayName() + ")");
         villainNameLabel.setText(villain.getName());
         
-        // Update HP bars
         updateHpBars();
-        
-        messageLabel.setText("You strike... The light recoils.");
+        messageArea.setText("You strike... The light recoils.");
     }
     
-    /**
-     * Met à jour les barres de HP
-     */
     public void updateHpBars() {
         if (hero != null) {
             int hpPercent = (int) ((double) hero.getHitPoints() / hero.getMaxHitPoints() * 100);
             heroHpBar.setValue(hpPercent);
-            heroHpBar.setString("HP " + hero.getHitPoints() + "/" + hero.getMaxHitPoints());
+            heroHpBar.setString("HP");
         }
         
         if (villain != null) {
-            int hpPercent = (int) ((double) villain.getHitPoints() / villain.getHitPoints() * 100);
+            int hpPercent = 100; // Villain HP is not tracked
             villainHpBar.setValue(hpPercent);
-            villainHpBar.setString("HP " + villain.getHitPoints());
+            villainHpBar.setString("HP");
         }
     }
     
-    /**
-     * Définit le message affiché
-     */
     public void setMessage(String message) {
-        messageLabel.setText(message);
+        messageArea.setText(message);
     }
     
-    /**
-     * Attend que l'utilisateur choisisse Fight ou Run
-     */
     public String waitForChoice() {
-        synchronized (choiceLock) {
-            pendingChoice = null;
-            try {
-                choiceLock.wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "R"; // Run par défaut si interrompu
-            }
-            return pendingChoice != null ? pendingChoice : "R";
+        choiceLatch = new CountDownLatch(1);
+        try {
+            choiceLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+        String result = choiceResult;
+        choiceResult = null;
+        choiceLatch = null;
+        return result != null ? result : "R";
     }
     
-    /**
-     * Configure les listeners des boutons pour le système d'attente
-     */
     public void setupChoiceWaiting() {
-        // Supprimer les anciens listeners
-        for (java.awt.event.ActionListener al : btnFight.getActionListeners()) {
-            btnFight.removeActionListener(al);
-        }
-        for (java.awt.event.ActionListener al : btnRun.getActionListeners()) {
-            btnRun.removeActionListener(al);
-        }
-        
-        // Ajouter les nouveaux listeners
-        btnFight.addActionListener(e -> notifyChoice("F"));
-        btnRun.addActionListener(e -> notifyChoice("R"));
+        // Reset choice state
+        choiceResult = null;
     }
     
-    /**
-     * Notifie qu'un choix a été fait
-     */
-    private void notifyChoice(String choice) {
-        synchronized (choiceLock) {
-            pendingChoice = choice;
-            choiceLock.notifyAll();
-        }
-    }
-    
-    /**
-     * Configure les raccourcis clavier F et R
-     */
     private void setupKeyBindings() {
-        InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        InputMap inputMap = getInputMap(WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = getActionMap();
         
-        // F pour Fight
         inputMap.put(KeyStroke.getKeyStroke('f'), "fight");
         inputMap.put(KeyStroke.getKeyStroke('F'), "fight");
         actionMap.put("fight", new AbstractAction() {
@@ -270,7 +252,6 @@ public class EncounterPanel extends JPanel {
             }
         });
         
-        // R pour Run
         inputMap.put(KeyStroke.getKeyStroke('r'), "run");
         inputMap.put(KeyStroke.getKeyStroke('R'), "run");
         actionMap.put("run", new AbstractAction() {
@@ -279,5 +260,42 @@ public class EncounterPanel extends JPanel {
                 btnRun.doClick();
             }
         });
+    }
+    
+    /**
+     * Panel avec image de fond
+     */
+    private class BackgroundPanel extends JPanel {
+        private Image backgroundImage;
+        
+        public BackgroundPanel() {
+            try {
+                java.net.URL imageURL = getClass().getResource("/images/encounter.png");
+                if (imageURL != null) {
+                    backgroundImage = new ImageIcon(imageURL).getImage();
+                }
+            } catch (Exception e) {
+                System.err.println("Could not load encounter background image: " + e.getMessage());
+            }
+        }
+        
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            
+            if (backgroundImage != null) {
+                g2.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            } else {
+                // Fallback gradient
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, new Color(60, 60, 60),
+                        0, getHeight(), new Color(30, 30, 30)
+                );
+                g2.setPaint(gradient);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        }
     }
 }

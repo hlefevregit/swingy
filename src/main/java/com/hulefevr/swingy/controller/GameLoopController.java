@@ -64,8 +64,9 @@ public class GameLoopController {
             boolean levelComplete = false;
             boolean playerDead = false;
             boolean playerQuit = false;
+            boolean gameBeat = false; // Niveau 15 atteint
             
-            while (!levelComplete && !playerDead && !playerQuit) {
+            while (!levelComplete && !playerDead && !playerQuit && !gameBeat) {
                 // 1. Afficher l'état actuel (HUD + Map)
                 view.showGameHud(gameState);
                 view.showMap(mapGenerator.renderMap(map, hero));
@@ -101,7 +102,9 @@ public class GameLoopController {
                         view.showEncounter(encounter);
                         
                         // Gérer le combat
-                        playerDead = handleEncounter(hero, encounter, gameState);
+                        var encounterResult = handleEncounter(hero, encounter, gameState);
+                        playerDead = encounterResult.isPlayerDead();
+                        gameBeat = encounterResult.isGameBeat();
                         
                         // Rafraîchir l'affichage après le combat
                         view.showGameHud(gameState);
@@ -116,31 +119,25 @@ public class GameLoopController {
             } else if (playerDead) {
                 showDefeatScreen();
                 gameRunning = false;
+            } else if (gameBeat) {
+                // Niveau 15 atteint, jeu terminé
+                gameRunning = false;
             } else if (levelComplete) {
-                // Level up si assez d'XP
-                if (checkLevelUp(hero)) {
-                    showLevelUpScreen(hero);
-                    
-                    // Vérifier si level 15 atteint
-                    if (hero.getLevel() >= 15) {
-                        showFinalBoss(hero);
-                        gameRunning = false;
-                    }
-                } else {
-                    // Pas assez d'XP, continuer sur la même map
-                    view.showMessage("\nYou need more experience to ascend...");
-                    view.showMessage("Press Enter to continue exploring...");
-                    view.promptMenuChoice();
-                }
+                // Le héros a atteint la sortie - continuer au niveau suivant
+                // Note: Le level up se fait automatiquement dans gainExperience() pendant les combats
+                System.out.println("DEBUG: Exit reached, hero level=" + hero.getLevel());
+                
+                // La map sera regénérée pour le niveau actuel dans la prochaine itération
+                // Pas besoin de vérifier checkLevelUp() ici car c'est géré pendant les combats
             }
         }
     }
     
     /**
      * Gère une rencontre avec un ennemi.
-     * @return true si le joueur est mort, false sinon
+     * @return résultat de la rencontre (mort du joueur, jeu terminé)
      */
-    private boolean handleEncounter(Hero hero, Encounter encounter, GameState gameState) {
+    private EncounterResult handleEncounter(Hero hero, Encounter encounter, GameState gameState) {
         // Demander fight ou run
         var choice = view.promptFightOrRun();
         
@@ -150,7 +147,7 @@ public class GameLoopController {
             if (escaped) {
                 view.showMessage("You fled successfully.");
                 encounter.setResolved(true);
-                return false;
+                return new EncounterResult(false, false);
             } else {
                 view.showMessage("You failed to run! Combat begins.");
             }
@@ -161,12 +158,29 @@ public class GameLoopController {
         view.showBattleResult(battleResult);
         
         if (!battleResult.isVictory()) {
-            return true; // Joueur mort
+            return new EncounterResult(true, false); // Joueur mort
         }
         
         // Victoire : gagner XP
-        hero.gainExperience(battleResult.getXpGained());
+        int oldLevel = hero.getLevel();
+        int oldXp = hero.getXp();
+        System.out.println("DEBUG: Before gainExperience - Level: " + oldLevel + ", XP: " + oldXp + "/" + hero.getXpForNextLevel());
+        boolean didLevelUp = hero.gainExperience(battleResult.getXpGained());
+        System.out.println("DEBUG: After gainExperience - Level: " + hero.getLevel() + ", XP: " + hero.getXp() + "/" + hero.getXpForNextLevel() + ", didLevelUp: " + didLevelUp);
         view.showMessage("+" + battleResult.getXpGained() + " XP gained!");
+        
+        // Vérifier si level up pendant le combat
+        if (didLevelUp) {
+            System.out.println("DEBUG: Hero leveled up during battle! " + oldLevel + " -> " + hero.getLevel());
+            showLevelUpScreen(hero);
+            
+            // Vérifier si level 15 atteint
+            if (hero.getLevel() >= 15) {
+                showFinalBoss(hero);
+                encounter.setResolved(true);
+                return new EncounterResult(false, true); // Jeu terminé
+            }
+        }
         
         // Loot potentiel
         if (battleResult.getLootDropped() != null) {
@@ -180,7 +194,23 @@ public class GameLoopController {
         }
         
         encounter.setResolved(true);
-        return false;
+        return new EncounterResult(false, false);
+    }
+    
+    /**
+     * Classe interne pour retourner le résultat d'une rencontre
+     */
+    private static class EncounterResult {
+        private final boolean playerDead;
+        private final boolean gameBeat;
+        
+        public EncounterResult(boolean playerDead, boolean gameBeat) {
+            this.playerDead = playerDead;
+            this.gameBeat = gameBeat;
+        }
+        
+        public boolean isPlayerDead() { return playerDead; }
+        public boolean isGameBeat() { return gameBeat; }
     }
     
     /**
@@ -193,39 +223,48 @@ public class GameLoopController {
     
     /**
      * Affiche l'écran de level up avec message narratif.
+     * NOTE: Cette méthode N'APPELLE PAS hero.levelUp() - le niveau doit déjà avoir été incrémenté.
      */
     private void showLevelUpScreen(Hero hero) {
-        int oldLevel = hero.getLevel();
-        hero.levelUp();
+        int currentLevel = hero.getLevel();
         
-        view.showMessage("\n" + "═".repeat(50));
+        System.out.println("DEBUG: showLevelUpScreen called - current level: " + currentLevel);
         
-        // Messages narratifs selon le niveau
+        // Construire le message narratif selon le niveau
+        StringBuilder message = new StringBuilder();
+        
         if (hero.getLevel() == 2) {
-            view.showMessage("You remember your wings.");
-            view.showMessage("They were not given.");
-            view.showMessage("They were earned.");
+            message.append("You remember your wings.\n");
+            message.append("They were not given.\n");
+            message.append("They were earned.");
         } else if (hero.getLevel() == 5) {
-            view.showMessage("The Light no longer burns.");
-            view.showMessage("It recoils.");
-            view.showMessage("\nYou ascend.");
+            message.append("The Light no longer burns.\n");
+            message.append("It recoils.\n\n");
+            message.append("You ascend.");
         } else if (hero.getLevel() == 10) {
-            view.showMessage("The Choir falls silent.");
-            view.showMessage("They know your name now.");
-            view.showMessage("\nYou are no longer fleeing.");
-            view.showMessage("You are returning.");
+            message.append("The Choir falls silent.\n");
+            message.append("They know your name now.\n\n");
+            message.append("You are no longer fleeing.\n");
+            message.append("You are returning.");
         } else {
-            view.showMessage("The Trial continues.");
-            view.showMessage("You grow stronger.");
+            message.append("The Trial continues.\n");
+            message.append("You grow stronger.");
         }
         
-        view.showMessage("\n✧ LEVEL ASCENDED ✧");
-        view.showMessage("Level " + oldLevel + " → " + hero.getLevel());
-        view.showMessage("New map size: " + hero.getMapSize() + "x" + hero.getMapSize());
-        view.showMessage("═".repeat(50) + "\n");
+        // Afficher l'écran épique de level up (GUI) ou le message (console)
+        System.out.println("DEBUG: Calling view.showLevelUp with level " + hero.getLevel());
+        view.showLevelUp(hero.getLevel(), message.toString());
+        System.out.println("DEBUG: view.showLevelUp returned");
         
-        view.showMessage("Press Enter to continue...");
-        view.promptMenuChoice();
+        // Pour la console, afficher les infos supplémentaires
+        if (!(view instanceof com.hulefevr.swingy.view.gui.GuiView)) {
+            view.showMessage("\n✧ LEVEL ASCENDED ✧");
+            view.showMessage("New Level: " + hero.getLevel());
+            view.showMessage("New map size: " + hero.getMapSize() + "x" + hero.getMapSize());
+            view.showMessage("═".repeat(50) + "\n");
+            view.showMessage("Press Enter to continue...");
+            view.promptMenuChoice();
+        }
     }
     
     /**

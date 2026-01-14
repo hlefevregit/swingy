@@ -9,489 +9,395 @@ import com.hulefevr.swingy.model.game.Encounter;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
+import java.util.concurrent.CountDownLatch;
 
 /**
- * Panel de jeu principal avec le design inspiré de "The Book of the Fallen"
+ * Panel de jeu principal - design "The Book of the Fallen"
+ * Layout: left decorative panel | hero stats bar | map + log | NSEW controls | action buttons
  */
 public class GamePanel extends JPanel {
     private GameState gameState;
     
-    // Composants UI
-    private JLabel heroInfoLabel;
+    private JLabel heroStatsLabel;
     private MapCanvas mapCanvas;
-    private JTextArea messageArea;
-    private JButton btnNorth, btnEast, btnSouth, btnWest;
+    private JTextArea logArea;
+    private JButton btnN, btnE, btnS, btnW;
     private JButton btnStats, btnMenu, btnSwitchView;
     
-    // Pour gérer l'attente d'input
-    private final Object inputLock = new Object();
-    private String pendingMove = null;
-    private boolean moveWaitingSetup = false;
+    private CountDownLatch moveLatch;
+    private String moveResult;
     
-    // Couleurs du thème
-    private static final Color PARCHMENT = new Color(220, 205, 175);
-    private static final Color DARK_BROWN = new Color(40, 30, 20);
-    private static final Color BORDER_GOLD = new Color(160, 140, 90);
-    private static final Color MAP_BG = new Color(30, 30, 30);
+    private static final Color PARCHMENT = new Color(245, 238, 228);
+    private static final Color DARK_STONE = new Color(46, 44, 40);
+    private static final Color BORDER_DARK = new Color(80, 76, 70);
+    private static final Color MAP_BG = new Color(32, 32, 32);
+    private static final Color MAP_VISIBLE = new Color(64, 64, 64);
     
     public GamePanel() {
         setLayout(new BorderLayout());
-        setBackground(DARK_BROWN);
-        
-        initComponents();
-        layoutComponents();
+        setBackground(new Color(60, 58, 54));
+        setFocusable(true);
+        buildUI();
         setupKeyBindings();
     }
-    
-    private void initComponents() {
-        // Hero info label
-        heroInfoLabel = new JLabel("HERO SHEET", SwingConstants.CENTER);
-        heroInfoLabel.setFont(new Font("Serif", Font.BOLD, 18));
-        heroInfoLabel.setForeground(DARK_BROWN);
-        heroInfoLabel.setOpaque(true);
-        heroInfoLabel.setBackground(PARCHMENT);
-        
-        // Map canvas
+
+    private void buildUI() {
+        // Left decorative panel
+        JPanel leftDeco = new JPanel();
+        leftDeco.setPreferredSize(new Dimension(220, 0));
+        leftDeco.setBackground(DARK_STONE);
+        add(leftDeco, BorderLayout.WEST);
+
+        // Right content
+        JPanel right = new JPanel(new BorderLayout(0, 0));
+        right.setOpaque(false);
+
+        // Title: HERO SHEET
+        JLabel title = new JLabel("Hero Sheet", SwingConstants.CENTER);
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
+        title.setForeground(new Color(48, 44, 40));
+        title.setOpaque(true);
+        title.setBackground(PARCHMENT);
+        title.setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
+
+        // Hero stats bar below title
+        heroStatsLabel = new JLabel("", SwingConstants.CENTER);
+        heroStatsLabel.setFont(heroStatsLabel.getFont().deriveFont(Font.PLAIN, 14f));
+        heroStatsLabel.setForeground(new Color(48, 44, 40));
+        heroStatsLabel.setOpaque(true);
+        heroStatsLabel.setBackground(PARCHMENT);
+        heroStatsLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 2, 0, BORDER_DARK),
+                BorderFactory.createEmptyBorder(4, 12, 12, 12)));
+
+        JPanel topGroup = new JPanel(new BorderLayout());
+        topGroup.setOpaque(false);
+        topGroup.add(title, BorderLayout.NORTH);
+        topGroup.add(heroStatsLabel, BorderLayout.SOUTH);
+        right.add(topGroup, BorderLayout.NORTH);
+
+        // Center: map + log
+        JPanel centerPanel = new JPanel(new BorderLayout(8, 0));
+        centerPanel.setOpaque(false);
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+
+        // Map
         mapCanvas = new MapCanvas();
-        
-        // Message area
-        messageArea = new JTextArea(10, 20);
-        messageArea.setEditable(false);
-        messageArea.setLineWrap(true);
-        messageArea.setWrapStyleWord(true);
-        messageArea.setFont(new Font("Serif", Font.PLAIN, 14));
-        messageArea.setBackground(PARCHMENT);
-        messageArea.setForeground(DARK_BROWN);
-        messageArea.setBorder(BorderFactory.createLineBorder(BORDER_GOLD, 2));
-        
-        // Direction buttons (WASD)
-        btnNorth = createDirectionButton("W");
-        btnEast = createDirectionButton("D");
-        btnSouth = createDirectionButton("S");
-        btnWest = createDirectionButton("A");
-        
-        // Action buttons
+        JPanel mapHolder = new JPanel(new BorderLayout());
+        mapHolder.setOpaque(false);
+        mapHolder.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_DARK, 2),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)));
+        mapHolder.add(mapCanvas, BorderLayout.CENTER);
+        centerPanel.add(mapHolder, BorderLayout.CENTER);
+
+        // Log
+        logArea = new JTextArea();
+        logArea.setEditable(false);
+        logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(true);
+        logArea.setFont(logArea.getFont().deriveFont(13f));
+        logArea.setBackground(PARCHMENT);
+        logArea.setForeground(new Color(48, 44, 40));
+        JScrollPane logScroll = new JScrollPane(logArea);
+        logScroll.setPreferredSize(new Dimension(280, 0));
+        logScroll.setBorder(BorderFactory.createLineBorder(BORDER_DARK, 2));
+        centerPanel.add(logScroll, BorderLayout.EAST);
+
+        right.add(centerPanel, BorderLayout.CENTER);
+
+        // Bottom: directional + actions
+        JPanel bottom = new JPanel(new BorderLayout(8, 8));
+        bottom.setOpaque(false);
+        bottom.setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
+
+        // Directional panel (NSEW layout)
+        btnN = createDirButton("N");
+        btnE = createDirButton("E");
+        btnS = createDirButton("S");
+        btnW = createDirButton("W");
+
+        JPanel dirPanel = new JPanel(new GridBagLayout());
+        dirPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.gridx = 1; gbc.gridy = 0;
+        dirPanel.add(btnN, gbc);
+        gbc.gridx = 0; gbc.gridy = 1;
+        dirPanel.add(btnW, gbc);
+        gbc.gridx = 2; gbc.gridy = 1;
+        dirPanel.add(btnE, gbc);
+        gbc.gridx = 1; gbc.gridy = 2;
+        dirPanel.add(btnS, gbc);
+
+        // Bottom row: action buttons
         btnStats = createActionButton("STATS");
         btnMenu = createActionButton("MENU");
         btnSwitchView = createActionButton("SWITCH VIEW");
-    }
-    
-    private JButton createDirectionButton(String text) {
+
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionsPanel.setOpaque(false);
+        actionsPanel.add(btnStats);
+        actionsPanel.add(btnMenu);
+        actionsPanel.add(btnSwitchView);
+
+        JPanel bottomCombined = new JPanel(new BorderLayout());
+        bottomCombined.setOpaque(false);
+        bottomCombined.add(dirPanel, BorderLayout.WEST);
+        bottomCombined.add(actionsPanel, BorderLayout.EAST);
+
+        bottom.add(bottomCombined, BorderLayout.CENTER);
+        right.add(bottom, BorderLayout.SOUTH);
+
+        add(right, BorderLayout.CENTER);
+
+        // Wire listeners
+        btnN.addActionListener(e -> recordMove("W"));
+        btnE.addActionListener(e -> recordMove("D"));
+        btnS.addActionListener(e -> recordMove("S"));
+        btnW.addActionListener(e -> recordMove("A"));        
+        // Menu button quits the game (sends "Q" like console)
+        btnMenu.addActionListener(e -> recordMove("Q"));    }
+
+    private JButton createDirButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Serif", Font.BOLD, 14));
-        btn.setBackground(DARK_BROWN);
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 16f));
+        btn.setPreferredSize(new Dimension(50, 40));
+        btn.setBackground(DARK_STONE);
         btn.setForeground(PARCHMENT);
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 2),
-            BorderFactory.createEmptyBorder(5, 15, 5, 15)
-        ));
+        btn.setBorder(BorderFactory.createLineBorder(BORDER_DARK, 2));
         return btn;
     }
-    
+
     private JButton createActionButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Serif", Font.BOLD, 12));
-        btn.setBackground(DARK_BROWN);
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 13f));
+        btn.setBackground(DARK_STONE);
         btn.setForeground(PARCHMENT);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 2),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
-        ));
+                BorderFactory.createLineBorder(BORDER_DARK, 2),
+                BorderFactory.createEmptyBorder(8, 16, 8, 16)));
         return btn;
     }
-    
-    private void layoutComponents() {
-        // Main panel with borders
-        JPanel mainContent = new JPanel(new BorderLayout(10, 10));
-        mainContent.setBackground(PARCHMENT);
-        mainContent.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(DARK_BROWN, 15),
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_GOLD, 3),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-            )
-        ));
-        
-        // Top: Hero info
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setOpaque(false);
-        topPanel.add(heroInfoLabel, BorderLayout.CENTER);
-        topPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        
-        // Center: Map and messages side by side
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
-        centerPanel.setOpaque(false);
-        
-        // Map section
-        JPanel mapSection = new JPanel(new BorderLayout(5, 5));
-        mapSection.setOpaque(false);
-        mapSection.add(mapCanvas, BorderLayout.CENTER);
-        
-        // Direction buttons panel (WASD layout)
-        JPanel directionPanel = new JPanel(new GridBagLayout());
-        directionPanel.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(2, 2, 2, 2);
-        
-        // W en haut (North)
-        gbc.gridx = 1; gbc.gridy = 0;
-        directionPanel.add(btnNorth, gbc);
-        
-        // A à gauche (West)
-        gbc.gridx = 0; gbc.gridy = 1;
-        directionPanel.add(btnWest, gbc);
-        
-        // D à droite (East)
-        gbc.gridx = 2; gbc.gridy = 1;
-        directionPanel.add(btnEast, gbc);
-        
-        // S en bas (South)
-        gbc.gridx = 1; gbc.gridy = 2;
-        directionPanel.add(btnSouth, gbc);
-        
-        mapSection.add(directionPanel, BorderLayout.SOUTH);
-        
-        centerPanel.add(mapSection, BorderLayout.CENTER);
-        
-        // Message panel on the right
-        JScrollPane messageScroll = new JScrollPane(messageArea);
-        messageScroll.setPreferredSize(new Dimension(250, 0));
-        messageScroll.setOpaque(false);
-        messageScroll.getViewport().setOpaque(false);
-        messageScroll.setBorder(BorderFactory.createEmptyBorder());
-        centerPanel.add(messageScroll, BorderLayout.EAST);
-        
-        // Bottom: Two rows
-        JPanel bottomContainer = new JPanel(new BorderLayout());
-        bottomContainer.setOpaque(false);
-        
-        // Top row: Keyboard indicators [W] [A] [S] [D]
-        JPanel keyboardRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-        keyboardRow.setOpaque(false);
-        keyboardRow.add(createKeyLabel("[W]"));
-        keyboardRow.add(createKeyLabel("[A]"));
-        keyboardRow.add(createKeyLabel("[S]"));
-        keyboardRow.add(createKeyLabel("[D]"));
-        
-        // Bottom row: Action buttons
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        bottomPanel.setOpaque(false);
-        bottomPanel.add(btnStats);
-        bottomPanel.add(btnMenu);
-        bottomPanel.add(btnSwitchView);
-        
-        bottomContainer.add(keyboardRow, BorderLayout.NORTH);
-        bottomContainer.add(bottomPanel, BorderLayout.SOUTH);
-        
-        mainContent.add(topPanel, BorderLayout.NORTH);
-        mainContent.add(centerPanel, BorderLayout.CENTER);
-        mainContent.add(bottomContainer, BorderLayout.SOUTH);
-        
-        add(mainContent, BorderLayout.CENTER);
+
+    private void recordMove(String dir) {
+        moveResult = dir;
+        if (moveLatch != null) moveLatch.countDown();
     }
-    
-    private JLabel createKeyLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Serif", Font.BOLD, 14));
-        label.setForeground(PARCHMENT);
-        label.setOpaque(true);
-        label.setBackground(DARK_BROWN);
-        label.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 2),
-            BorderFactory.createEmptyBorder(5, 12, 5, 12)
-        ));
-        return label;
-    }
-    
-    /**
-     * Configure les raccourcis clavier WASD pour les mouvements
-     */
+
     private void setupKeyBindings() {
-        // Récupérer les InputMap et ActionMap du panel
+        // WASD key bindings
         InputMap inputMap = getInputMap(WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = getActionMap();
-        
-        // W = North (haut)
-        inputMap.put(KeyStroke.getKeyStroke('w'), "move-north");
-        inputMap.put(KeyStroke.getKeyStroke('W'), "move-north");
-        actionMap.put("move-north", new AbstractAction() {
+
+        // W = North
+        inputMap.put(KeyStroke.getKeyStroke('w'), "moveNorth");
+        inputMap.put(KeyStroke.getKeyStroke('W'), "moveNorth");
+        actionMap.put("moveNorth", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                btnNorth.doClick();
+                recordMove("W");
             }
         });
-        
-        // A = West (gauche)
-        inputMap.put(KeyStroke.getKeyStroke('a'), "move-west");
-        inputMap.put(KeyStroke.getKeyStroke('A'), "move-west");
-        actionMap.put("move-west", new AbstractAction() {
+
+        // A = West
+        inputMap.put(KeyStroke.getKeyStroke('a'), "moveWest");
+        inputMap.put(KeyStroke.getKeyStroke('A'), "moveWest");
+        actionMap.put("moveWest", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                btnWest.doClick();
+                recordMove("A");
             }
         });
-        
-        // S = South (bas)
-        inputMap.put(KeyStroke.getKeyStroke('s'), "move-south");
-        inputMap.put(KeyStroke.getKeyStroke('S'), "move-south");
-        actionMap.put("move-south", new AbstractAction() {
+
+        // S = South
+        inputMap.put(KeyStroke.getKeyStroke('s'), "moveSouth");
+        inputMap.put(KeyStroke.getKeyStroke('S'), "moveSouth");
+        actionMap.put("moveSouth", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                btnSouth.doClick();
+                recordMove("S");
             }
         });
-        
-        // D = East (droite)
-        inputMap.put(KeyStroke.getKeyStroke('d'), "move-east");
-        inputMap.put(KeyStroke.getKeyStroke('D'), "move-east");
-        actionMap.put("move-east", new AbstractAction() {
+
+        // D = East
+        inputMap.put(KeyStroke.getKeyStroke('d'), "moveEast");
+        inputMap.put(KeyStroke.getKeyStroke('D'), "moveEast");
+        actionMap.put("moveEast", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                btnEast.doClick();
-            }
-        });
-        
-        // Bonus: Q pour quitter (menu)
-        inputMap.put(KeyStroke.getKeyStroke('q'), "quit-game");
-        inputMap.put(KeyStroke.getKeyStroke('Q'), "quit-game");
-        actionMap.put("quit-game", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                btnMenu.doClick();
+                recordMove("D");
             }
         });
     }
-    
-    /**
-     * Update the panel with current game state
-     */
+
     public void updateGameState(GameState state) {
         this.gameState = state;
-        updateHeroInfo();
+        updateHeroStats();
         mapCanvas.repaint();
     }
-    
-    private void updateHeroInfo() {
+
+    private void updateHeroStats() {
         if (gameState != null && gameState.getHero() != null) {
-            Hero hero = gameState.getHero();
-            String info = String.format(
-                "<html><div style='text-align: center; padding: 5px;'>" +
-                "<span style='font-size: 16px; font-weight: bold;'>HERO SHEET</span><br>" +
-                "<span style='font-size: 14px;'>%s  LVL %d  XP %d/%d  ATK %d  DEF %d  HP %d/%d</span>" +
-                "</div></html>",
-                hero.getName(),
-                hero.getLevel(),
-                hero.getXp(),
-                hero.getXpForNextLevel(),
-                hero.getAttack(),
-                hero.getDefense(),
-                hero.getHitPoints(),
-                hero.getMaxHitPoints()
-            );
-            heroInfoLabel.setText(info);
+            Hero h = gameState.getHero();
+            heroStatsLabel.setText(String.format(
+                    "%s  LVL %d  XP %d/%d  ATK %d  DEF %d  HP %d/%d",
+                    h.getName(), h.getLevel(), h.getXp(), h.getXpForNextLevel(),
+                    h.getAttack(), h.getDefense(), h.getHitPoints(), h.getMaxHitPoints()));
         }
     }
-    
-    public void addMessage(String message) {
-        messageArea.append("- " + message + "\n");
-        messageArea.setCaretPosition(messageArea.getDocument().getLength());
+
+    public void appendLog(String msg) {
+        logArea.append("- " + msg + "\n");
+        logArea.setCaretPosition(logArea.getDocument().getLength());
     }
-    
-    public void clearMessages() {
-        messageArea.setText("");
+
+    public void clearLog() {
+        logArea.setText("");
     }
-    
-    // Action listeners
-    public void setNorthAction(ActionListener listener) {
-        btnNorth.addActionListener(listener);
+
+    public String waitForMove() {
+        moveLatch = new CountDownLatch(1);
+        try {
+            moveLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        String res = moveResult;
+        moveResult = null;
+        moveLatch = null;
+        return res;
     }
-    
-    public void setEastAction(ActionListener listener) {
-        btnEast.addActionListener(listener);
-    }
-    
-    public void setSouthAction(ActionListener listener) {
-        btnSouth.addActionListener(listener);
-    }
-    
-    public void setWestAction(ActionListener listener) {
-        btnWest.addActionListener(listener);
-    }
-    
-    public void setStatsAction(ActionListener listener) {
-        btnStats.addActionListener(listener);
-    }
-    
-    public void setMenuAction(ActionListener listener) {
-        btnMenu.addActionListener(listener);
-    }
-    
-    public void setSwitchViewAction(ActionListener listener) {
-        btnSwitchView.addActionListener(listener);
-    }
-    
-    /**
-     * Canvas pour afficher la carte du jeu
-     */
+
+    // Legacy methods for compatibility
+    public void addMessage(String msg) { appendLog(msg); }
+    public void setupMoveWaiting() { /* no-op, new API uses waitForMove() */ }
+    public void setNorthAction(ActionListener l) { /* deprecated, use waitForMove() */ }
+    public void setEastAction(ActionListener l) { /* deprecated, use waitForMove() */ }
+    public void setSouthAction(ActionListener l) { /* deprecated, use waitForMove() */ }
+    public void setWestAction(ActionListener l) { /* deprecated, use waitForMove() */ }
+
+    public void setStatsAction(ActionListener l) { btnStats.addActionListener(l); }
+    public void setMenuAction(ActionListener l) { btnMenu.addActionListener(l); }
+    public void setSwitchViewAction(ActionListener l) { btnSwitchView.addActionListener(l); }
+
     private class MapCanvas extends JPanel {
-        private static final int CELL_SIZE = 12;
-        
+        private static final int CELL_SIZE = 14;
+
         public MapCanvas() {
             setBackground(MAP_BG);
-            setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_GOLD, 3),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-            ));
-            setPreferredSize(new Dimension(500, 400));
+            setPreferredSize(new Dimension(450, 380));
         }
-        
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            
             if (gameState == null || gameState.getHero() == null || gameState.getMap() == null) {
                 return;
             }
-            
             Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
             GameMap map = gameState.getMap();
             Hero hero = gameState.getHero();
             Position heroPos = hero.getPosition();
-            
             int mapSize = map.getSize();
-            int totalWidth = mapSize * CELL_SIZE;
-            int totalHeight = mapSize * CELL_SIZE;
             
-            int offsetX = (getWidth() - totalWidth) / 2;
-            int offsetY = (getHeight() - totalHeight) / 2;
+            // Calculate camera offset to keep hero centered
+            // If map is smaller than canvas, center the map
+            // If map is larger, center on hero
+            int canvasWidth = getWidth();
+            int canvasHeight = getHeight();
+            int totalMapW = mapSize * CELL_SIZE;
+            int totalMapH = mapSize * CELL_SIZE;
             
-            // Draw grid
-            g2.setColor(new Color(60, 60, 60));
-            for (int y = 0; y < mapSize; y++) {
-                for (int x = 0; x < mapSize; x++) {
-                    int px = offsetX + x * CELL_SIZE;
-                    int py = offsetY + y * CELL_SIZE;
+            int cameraOffsetX, cameraOffsetY;
+            
+            if (totalMapW <= canvasWidth) {
+                // Map fits horizontally - center it
+                cameraOffsetX = (canvasWidth - totalMapW) / 2;
+            } else {
+                // Map is larger - center on hero
+                cameraOffsetX = canvasWidth / 2 - (heroPos.getX() * CELL_SIZE + CELL_SIZE / 2);
+                // Clamp camera so we don't show area outside the map
+                int maxOffsetX = 0;
+                int minOffsetX = canvasWidth - totalMapW;
+                cameraOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, cameraOffsetX));
+            }
+            
+            if (totalMapH <= canvasHeight) {
+                // Map fits vertically - center it
+                cameraOffsetY = (canvasHeight - totalMapH) / 2;
+            } else {
+                // Map is larger - center on hero
+                cameraOffsetY = canvasHeight / 2 - (heroPos.getY() * CELL_SIZE + CELL_SIZE / 2);
+                // Clamp camera so we don't show area outside the map
+                int maxOffsetY = 0;
+                int minOffsetY = canvasHeight - totalMapH;
+                cameraOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, cameraOffsetY));
+            }
+
+            // Calculate visible cell range for optimization
+            int startX = Math.max(0, -cameraOffsetX / CELL_SIZE - 1);
+            int endX = Math.min(mapSize, (-cameraOffsetX + canvasWidth) / CELL_SIZE + 1);
+            int startY = Math.max(0, -cameraOffsetY / CELL_SIZE - 1);
+            int endY = Math.min(mapSize, (-cameraOffsetY + canvasHeight) / CELL_SIZE + 1);
+
+            // Draw dark grid (only visible cells)
+            g2.setColor(MAP_BG);
+            for (int y = startY; y < endY; y++) {
+                for (int x = startX; x < endX; x++) {
+                    int px = cameraOffsetX + x * CELL_SIZE;
+                    int py = cameraOffsetY + y * CELL_SIZE;
                     g2.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
                 }
             }
-            
-            // Draw view area around hero (lighter)
+
+            // View radius lighter
             int viewRadius = 3;
-            g2.setColor(new Color(80, 80, 80));
+            g2.setColor(MAP_VISIBLE);
             for (int dy = -viewRadius; dy <= viewRadius; dy++) {
                 for (int dx = -viewRadius; dx <= viewRadius; dx++) {
                     int x = heroPos.getX() + dx;
                     int y = heroPos.getY() + dy;
                     if (x >= 0 && x < mapSize && y >= 0 && y < mapSize) {
-                        int px = offsetX + x * CELL_SIZE;
-                        int py = offsetY + y * CELL_SIZE;
+                        int px = cameraOffsetX + x * CELL_SIZE;
+                        int py = cameraOffsetY + y * CELL_SIZE;
                         g2.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
                     }
                 }
             }
-            
-            // Draw encounters
-            g2.setFont(new Font("Monospaced", Font.BOLD, CELL_SIZE));
-            for (int y = 0; y < mapSize; y++) {
-                for (int x = 0; x < mapSize; x++) {
-                    Position pos = new Position(x, y);
-                    Encounter encounter = map.getEncounterAt(pos);
-                    
-                    // N'afficher que les ennemis non résolus
-                    if (encounter != null && encounter.getEnemy() != null && !encounter.isResolved()) {
-                        int px = offsetX + x * CELL_SIZE;
-                        int py = offsetY + y * CELL_SIZE + CELL_SIZE - 2;
-                        g2.setColor(Color.RED);
-                        g2.drawString("V", px + 1, py);
+
+            // Draw encounters (V for villains) - only visible ones
+            g2.setFont(new Font("Monospaced", Font.BOLD, CELL_SIZE - 2));
+            g2.setColor(new Color(200, 60, 60));
+            for (int y = startY; y < endY; y++) {
+                for (int x = startX; x < endX; x++) {
+                    Encounter enc = map.getEncounterAt(new Position(x, y));
+                    if (enc != null && !enc.isResolved()) {
+                        int px = cameraOffsetX + x * CELL_SIZE;
+                        int py = cameraOffsetY + y * CELL_SIZE;
+                        g2.drawString("V", px + 2, py + CELL_SIZE - 2);
                     }
                 }
             }
-            
-            // Draw hero
-            int heroPx = offsetX + heroPos.getX() * CELL_SIZE;
-            int heroPy = offsetY + heroPos.getY() * CELL_SIZE + CELL_SIZE - 2;
-            g2.setColor(Color.WHITE);
-            g2.drawString("@", heroPx + 1, heroPy);
-            
-            // Draw exit if visible
-            Position exit = map.getExitPosition();
-            if (exit != null) {
-                int exitPx = offsetX + exit.getX() * CELL_SIZE;
-                int exitPy = offsetY + exit.getY() * CELL_SIZE + CELL_SIZE - 2;
-                g2.setColor(Color.GREEN);
-                g2.drawString("X", exitPx + 1, exitPy);
+
+            // Draw exit (#)
+            Position exitPos = map.getExitPosition();
+            if (exitPos != null) {
+                g2.setColor(new Color(100, 200, 100)); // Green for exit
+                int ex = cameraOffsetX + exitPos.getX() * CELL_SIZE;
+                int ey = cameraOffsetY + exitPos.getY() * CELL_SIZE;
+                g2.drawString("#", ex + 2, ey + CELL_SIZE - 2);
             }
+
+            // Draw hero (@)
+            g2.setColor(new Color(220, 220, 180));
+            int hx = cameraOffsetX + heroPos.getX() * CELL_SIZE;
+            int hy = cameraOffsetY + heroPos.getY() * CELL_SIZE;
+            g2.drawString("@", hx + 2, hy + CELL_SIZE - 2);
         }
-    }
-    
-    /**
-     * Attend qu'un mouvement soit sélectionné via les boutons.
-     * Cette méthode bloque jusqu'à ce qu'un bouton soit cliqué.
-     * IMPORTANT: Ne doit PAS être appelée depuis l'EDT !
-     */
-    public String waitForMove() {
-        synchronized (inputLock) {
-            pendingMove = null;
-            try {
-                inputLock.wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "Q"; // Quit si interrompu
-            }
-            return pendingMove != null ? pendingMove : "Q";
-        }
-    }
-    
-    /**
-     * Signale qu'un mouvement a été sélectionné.
-     * Appelé depuis l'EDT par les boutons.
-     */
-    private void notifyMove(String direction) {
-        synchronized (inputLock) {
-            pendingMove = direction;
-            inputLock.notifyAll();
-        }
-    }
-    
-    /**
-     * Réinitialise les actions des boutons pour utiliser le système d'attente
-     */
-    public void setupMoveWaiting() {
-        // Ne configurer qu'une seule fois
-        if (moveWaitingSetup) {
-            return;
-        }
-        moveWaitingSetup = true;
-        
-        // Supprimer les anciens listeners
-        for (ActionListener al : btnNorth.getActionListeners()) {
-            btnNorth.removeActionListener(al);
-        }
-        for (ActionListener al : btnEast.getActionListeners()) {
-            btnEast.removeActionListener(al);
-        }
-        for (ActionListener al : btnSouth.getActionListeners()) {
-            btnSouth.removeActionListener(al);
-        }
-        for (ActionListener al : btnWest.getActionListeners()) {
-            btnWest.removeActionListener(al);
-        }
-        
-        // Ajouter les nouveaux listeners qui notifient
-        btnNorth.addActionListener(e -> notifyMove("W"));
-        btnEast.addActionListener(e -> notifyMove("D"));
-        btnSouth.addActionListener(e -> notifyMove("S"));
-        btnWest.addActionListener(e -> notifyMove("A"));
-        
-        // Le bouton menu peut servir à quitter
-        for (ActionListener al : btnMenu.getActionListeners()) {
-            btnMenu.removeActionListener(al);
-        }
-        btnMenu.addActionListener(e -> notifyMove("Q"));
     }
 }
