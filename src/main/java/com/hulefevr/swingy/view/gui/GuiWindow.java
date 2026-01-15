@@ -21,6 +21,12 @@ public class GuiWindow extends JFrame {
     private com.hulefevr.swingy.view.gui.screens.EncounterPanel encounterPanel;
     private com.hulefevr.swingy.view.gui.screens.LootPanel lootPanel;
     private com.hulefevr.swingy.view.gui.screens.LevelUpPanel levelUpPanel;
+    private com.hulefevr.swingy.view.gui.screens.FinalBossIntroPanel finalBossIntroPanel;
+    private com.hulefevr.swingy.view.gui.screens.FinalBossBattlePanel finalBossBattlePanel;
+    private com.hulefevr.swingy.view.gui.screens.EndingPanel endingPanel;
+    
+    // Current game state for accessing Hero in various panels
+    private com.hulefevr.swingy.model.game.GameState currentGameState;
 
     public static final String SPLASH = "splash";
     public static final String MAIN_MENU = "main_menu";
@@ -33,6 +39,9 @@ public class GuiWindow extends JFrame {
     public static final String ENCOUNTER = "encounter";
     public static final String LOOT = "loot";
     public static final String LEVEL_UP = "level_up";
+    public static final String FINAL_BOSS_INTRO = "final_boss_intro";
+    public static final String FINAL_BOSS_BATTLE = "final_boss_battle";
+    public static final String ENDING = "ending";
 
     public GuiWindow() {
         super("Swingy - The Book of the Fallen");
@@ -52,6 +61,9 @@ public class GuiWindow extends JFrame {
     encounterPanel = new com.hulefevr.swingy.view.gui.screens.EncounterPanel();
     lootPanel = new com.hulefevr.swingy.view.gui.screens.LootPanel();
     levelUpPanel = new com.hulefevr.swingy.view.gui.screens.LevelUpPanel();
+    finalBossIntroPanel = new com.hulefevr.swingy.view.gui.screens.FinalBossIntroPanel();
+    endingPanel = new com.hulefevr.swingy.view.gui.screens.EndingPanel();
+    finalBossBattlePanel = new com.hulefevr.swingy.view.gui.screens.FinalBossBattlePanel();
 
     root.add(splash, SPLASH);
     root.add(mainMenuPanel, MAIN_MENU);
@@ -64,6 +76,9 @@ public class GuiWindow extends JFrame {
     root.add(encounterPanel, ENCOUNTER);
     root.add(lootPanel, LOOT);
     root.add(levelUpPanel, LEVEL_UP);
+    root.add(finalBossIntroPanel, FINAL_BOSS_INTRO);
+    root.add(endingPanel, ENDING);
+    root.add(finalBossBattlePanel, FINAL_BOSS_BATTLE);
 
         setContentPane(root);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -200,20 +215,22 @@ public class GuiWindow extends JFrame {
      * Caller MUST NOT be on the EDT.
      */
     public String showMainMenuAndWait() {
+        // System.out.println("DEBUG GuiWindow: showMainMenuAndWait called");
         // Reset panel state and show it on the EDT. Use invokeAndWait so the UI is visible
         // before we block waiting for selection. Caller MUST NOT be on the EDT.
         try {
             SwingUtilities.invokeAndWait(() -> {
+                // System.out.println("DEBUG GuiWindow: Resetting mainMenuPanel and showing it");
                 mainMenuPanel.reset();
                 cards.show(root, MAIN_MENU);
-                // request focus so key bindings / focus events work
                 mainMenuPanel.requestFocusInWindow();
-                // revalidate/repaint to ensure components are shown
                 root.revalidate();
                 root.repaint();
+                // System.out.println("DEBUG GuiWindow: Menu panel should now be visible");
             });
         } catch (Exception e) {
-            // If invokeAndWait fails, fall back to invokeLater (best effort)
+            System.err.println("ERROR GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            e.printStackTrace();
             SwingUtilities.invokeLater(() -> {
                 mainMenuPanel.reset();
                 cards.show(root, MAIN_MENU);
@@ -221,8 +238,10 @@ public class GuiWindow extends JFrame {
             });
         }
 
-        // Block until selection is made
-        return mainMenuPanel.waitForSelection();
+        // System.out.println("DEBUG GuiWindow: About to wait for selection...");
+        String result = mainMenuPanel.waitForSelection();
+        // System.out.println("DEBUG GuiWindow: Selection received: " + result);
+        return result;
     }
 
     /**
@@ -237,6 +256,7 @@ public class GuiWindow extends JFrame {
      * Affiche l'écran de jeu avec l'état actuel
      */
     public void showGame(com.hulefevr.swingy.model.game.GameState gameState) {
+        this.currentGameState = gameState;
         try {
             SwingUtilities.invokeAndWait(() -> {
                 gamePanel.updateGameState(gameState);
@@ -245,7 +265,6 @@ public class GuiWindow extends JFrame {
                 root.repaint();
             });
         } catch (Exception e) {
-            // Fallback si erreur
             SwingUtilities.invokeLater(() -> {
                 gamePanel.updateGameState(gameState);
                 cards.show(root, GAME);
@@ -259,6 +278,7 @@ public class GuiWindow extends JFrame {
      * Met à jour l'état du jeu affiché
      */
     public void updateGameState(com.hulefevr.swingy.model.game.GameState gameState) {
+        this.currentGameState = gameState;
         SwingUtilities.invokeLater(() -> {
             gamePanel.updateGameState(gameState);
         });
@@ -298,7 +318,6 @@ public class GuiWindow extends JFrame {
             });
         }
         
-        // Attendre le mouvement (bloquant, mais pas sur EDT)
         return gamePanel.waitForMove();
     }
     
@@ -334,7 +353,8 @@ public class GuiWindow extends JFrame {
     public String showLootAndWait(com.hulefevr.swingy.model.artifact.Artifact artifact) {
         try {
             SwingUtilities.invokeAndWait(() -> {
-                lootPanel.setArtifact(artifact);
+                com.hulefevr.swingy.model.hero.Hero hero = currentGameState != null ? currentGameState.getHero() : null;
+                lootPanel.updateLoot(hero, artifact);
                 lootPanel.setupChoiceWaiting();
                 cards.show(root, LOOT);
                 root.revalidate();
@@ -342,13 +362,13 @@ public class GuiWindow extends JFrame {
             });
         } catch (Exception e) {
             SwingUtilities.invokeLater(() -> {
-                lootPanel.setArtifact(artifact);
+                com.hulefevr.swingy.model.hero.Hero hero = currentGameState != null ? currentGameState.getHero() : null;
+                lootPanel.updateLoot(hero, artifact);
                 lootPanel.setupChoiceWaiting();
                 cards.show(root, LOOT);
             });
         }
         
-        // Attendre le choix (T = Take, L = Leave)
         return lootPanel.waitForChoice();
     }
     
@@ -366,17 +386,17 @@ public class GuiWindow extends JFrame {
      * Caller MUST NOT be on the EDT.
      */
     public void showLevelUpAndWait(int newLevel, String message) {
-        System.out.println("DEBUG GuiWindow: showLevelUpAndWait called with level " + newLevel);
+        // System.out.println("DEBUG GuiWindow: showLevelUpAndWait called with level " + newLevel);
         try {
             SwingUtilities.invokeAndWait(() -> {
-                System.out.println("DEBUG GuiWindow: Setting up level up panel on EDT");
+                // System.out.println("DEBUG GuiWindow: Setting up level up panel on EDT");
                 levelUpPanel.setLevelUp(newLevel, message);
                 cards.show(root, LEVEL_UP);
                 root.revalidate();
                 root.repaint();
             });
         } catch (Exception e) {
-            System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            // System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
             e.printStackTrace();
             SwingUtilities.invokeLater(() -> {
                 levelUpPanel.setLevelUp(newLevel, message);
@@ -384,12 +404,99 @@ public class GuiWindow extends JFrame {
             });
         }
         
-        System.out.println("DEBUG GuiWindow: Waiting for user to click continue...");
+        // System.out.println("DEBUG GuiWindow: Waiting for user to click continue...");
         // Attendre que l'utilisateur clique sur CONTINUE
         levelUpPanel.waitForContinue();
-        System.out.println("DEBUG GuiWindow: User clicked continue, returning to game");
+        // System.out.println("DEBUG GuiWindow: User clicked continue, returning to game");
         
         // Retourner au jeu
         returnToGame();
+    }
+    
+    /**
+     * Affiche l'écran d'intro du boss final et attend que l'utilisateur continue.
+     * Caller MUST NOT be on the EDT.
+     */
+    public void showFinalBossIntroAndWait() {
+        // System.out.println("DEBUG GuiWindow: showFinalBossIntroAndWait called");
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                // System.out.println("DEBUG GuiWindow: Showing final boss intro panel on EDT");
+                cards.show(root, FINAL_BOSS_INTRO);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            // System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                cards.show(root, FINAL_BOSS_INTRO);
+            });
+        }
+        
+        // System.out.println("DEBUG GuiWindow: Waiting for user to click continue...");
+        // Attendre que l'utilisateur clique sur FACE THE ARCHANGEL
+        finalBossIntroPanel.waitForContinue();
+        // System.out.println("DEBUG GuiWindow: User clicked continue");
+    }
+    
+    /**
+     * Affiche l'écran de combat du boss final et attend chaque tour.
+     * Caller MUST NOT be on the EDT.
+     */
+    public void showFinalBossBattleAndWait(com.hulefevr.swingy.model.hero.Hero hero, String message) {
+        // System.out.println("DEBUG GuiWindow: showFinalBossBattleAndWait called");
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                // System.out.println("DEBUG GuiWindow: Setting up final boss battle panel on EDT");
+                finalBossBattlePanel.setHero(hero);
+                finalBossBattlePanel.setMessage(message);
+                cards.show(root, FINAL_BOSS_BATTLE);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            // System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                finalBossBattlePanel.setHero(hero);
+                finalBossBattlePanel.setMessage(message);
+                cards.show(root, FINAL_BOSS_BATTLE);
+            });
+        }
+        
+        // System.out.println("DEBUG GuiWindow: Waiting for user to click next turn...");
+        // Attendre que l'utilisateur clique sur NEXT TURN
+        finalBossBattlePanel.waitForNextTurn();
+        // System.out.println("DEBUG GuiWindow: User clicked next turn");
+    }
+    
+    /**
+     * Affiche l'écran de fin épique et attend le choix de l'utilisateur.
+     * Caller MUST NOT be on the EDT.
+     * Returns "MENU" or "QUIT"
+     */
+    public String showEndingAndWait() {
+        // System.out.println("DEBUG GuiWindow: showEndingAndWait called");
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                //System.out.println("DEBUG GuiWindow: Showing ending panel on EDT");
+                cards.show(root, ENDING);
+                root.revalidate();
+                root.repaint();
+            });
+        } catch (Exception e) {
+            // System.out.println("DEBUG GuiWindow: Exception in invokeAndWait: " + e.getMessage());
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                cards.show(root, ENDING);
+            });
+        }
+        
+        // System.out.println("DEBUG GuiWindow: Waiting for user action...");
+        // Attendre que l'utilisateur clique sur RETURN TO COVER ou QUIT
+        String action = endingPanel.waitForAction();
+        // System.out.println("DEBUG GuiWindow: User chose: " + action);
+        return action;
     }
 }

@@ -227,17 +227,24 @@ public class MainMenuPanel extends JPanel {
     }
 
     public String waitForSelection() {
+        System.out.println("DEBUG MainMenuPanel: waitForSelection called, latch count = " + (latch != null ? latch.getCount() : "null"));
         try {
+            System.out.println("DEBUG MainMenuPanel: About to await on latch...");
             latch.await();
+            System.out.println("DEBUG MainMenuPanel: Latch released, selected = " + selected);
         } catch (InterruptedException e) {
+            System.err.println("ERROR MainMenuPanel: Interrupted while waiting!");
             Thread.currentThread().interrupt();
         }
+        System.out.println("DEBUG MainMenuPanel: Returning selection: " + selected);
         return selected;
     }
 
     public void reset() {
+        System.out.println("DEBUG MainMenuPanel: reset() called");
         selected = null;
         latch = new java.util.concurrent.CountDownLatch(1);
+        System.out.println("DEBUG MainMenuPanel: reset() complete, new latch created");
     }
     
     /**

@@ -18,7 +18,7 @@ public class MapGenerator {
      * @param size Taille de la map (size x size)
      * @return GameMap générée avec héros au centre, sortie sur un bord, ennemis aléatoires
      */
-    public GameMap generate(int size) {
+    public GameMap generate(int size, int heroLevel) {
         GameMap map = new GameMap(size);
         
         // Placer la sortie sur un bord aléatoire
@@ -34,7 +34,7 @@ public class MapGenerator {
                 continue;
             }
             
-            Villain villain = generateVillain(1); // TODO: utiliser le level du héros
+            Villain villain = generateVillain(heroLevel);
             Encounter encounter = new Encounter(villain);
             map.addEncounter(pos, encounter);
         }

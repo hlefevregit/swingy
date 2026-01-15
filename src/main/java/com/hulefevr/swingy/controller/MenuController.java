@@ -35,11 +35,20 @@ public class MenuController {
         // Demander les infos du héros
         CreateHeroInput input = view.promptCreateHero();
         
+        // Si l'utilisateur a annulé (cliqué sur BACK)
+        if (input == null) {
+            return null;
+        }
+        
         // Valider le nom
         if (input.getName() == null || input.getName().trim().isEmpty()) {
             view.showMessage("Error: Hero name cannot be empty.");
             return null;
         }
+        
+        // Vérifier si c'est un héros debug (préfixe "DEBUG:")
+        boolean isDebug = input.getName().startsWith("DEBUG:");
+        String actualName = isDebug ? input.getName().substring(6).trim() : input.getName().trim();
         
         // Valider et parser la classe
         HeroClass selectedClass = null;
@@ -51,7 +60,20 @@ public class MenuController {
         }
         
         // Créer le héros
-        Hero hero = HeroFactory.createHero(input.getName().trim(), selectedClass);
+        Hero hero = HeroFactory.createHero(actualName, selectedClass);
+        
+        // Si c'est un héros debug, le booster au niveau 14
+        if (isDebug) {
+            // Donner assez d'XP pour être niveau 14 (proche du niveau 15)
+            int targetLevel = 14;
+            while (hero.getLevel() < targetLevel) {
+                int xpNeeded = hero.getXpForNextLevel();
+                hero.gainExperience(xpNeeded);
+            }
+            // Restaurer les HP au max après les montées de niveau
+            hero.setCurrentHitPoints(hero.getMaxHitPoints());
+            view.showMessage("\n⚡ DEBUG MODE: Hero boosted to level " + hero.getLevel() + "!");
+        }
         
         // Afficher les stats du héros créé
         displayHeroStats(hero);

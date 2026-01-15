@@ -17,11 +17,14 @@ import java.util.concurrent.CountDownLatch;
  */
 public class GamePanel extends JPanel {
     private GameState gameState;
+    private Image backgroundImage;
     
     private JLabel heroStatsLabel;
     private MapCanvas mapCanvas;
     private JTextArea logArea;
-    private JButton btnN, btnE, btnS, btnW;
+    private JLabel inventoryWeaponLabel;
+    private JLabel inventoryArmorLabel;
+    private JLabel inventoryHelmLabel;
     private JButton btnStats, btnMenu, btnSwitchView;
     
     private CountDownLatch moveLatch;
@@ -35,139 +38,122 @@ public class GamePanel extends JPanel {
     
     public GamePanel() {
         setLayout(new BorderLayout());
-        setBackground(new Color(60, 58, 54));
+        setOpaque(false); // Transparent pour voir le background
         setFocusable(true);
+        loadBackgroundImage();
         buildUI();
         setupKeyBindings();
     }
+    
+    private void loadBackgroundImage() {
+        try {
+            java.net.URL imageURL = getClass().getResource("/images/SorrowfulAngelsOnARock.png");
+            if (imageURL != null) {
+                backgroundImage = new ImageIcon(imageURL).getImage();
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load SorrowfulAngelsOnARock background: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        
+        if (backgroundImage != null) {
+            int panelWidth = getWidth();
+            int panelHeight = getHeight();
+            int imgWidth = backgroundImage.getWidth(this);
+            int imgHeight = backgroundImage.getHeight(this);
+            
+            if (imgWidth > 0 && imgHeight > 0) {
+                // Calculer le ratio pour garder les proportions
+                double ratio = Math.max((double) panelWidth / imgWidth, (double) panelHeight / imgHeight);
+                int destWidth = (int) (imgWidth * ratio);
+                int destHeight = (int) (imgHeight * ratio);
+                
+                // Centrer l'image
+                int x = (panelWidth - destWidth) / 2;
+                int y = (panelHeight - destHeight) / 2;
+                
+                // Dessiner l'image entière
+                g2.drawImage(backgroundImage, x, y, destWidth, destHeight, this);
+            }
+        } else {
+            // Fallback: fond sombre
+            g2.setColor(new Color(60, 58, 54));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+        }
+    }
 
     private void buildUI() {
-        // Left decorative panel
-        JPanel leftDeco = new JPanel();
-        leftDeco.setPreferredSize(new Dimension(220, 0));
-        leftDeco.setBackground(DARK_STONE);
-        add(leftDeco, BorderLayout.WEST);
+        // Main container
+        JPanel mainContainer = new JPanel(new BorderLayout(0, 0));
+        mainContainer.setOpaque(false);
+        mainContainer.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Right content
-        JPanel right = new JPanel(new BorderLayout(0, 0));
-        right.setOpaque(false);
+        // TOP SECTION: Inventory | Heaven vs Abyss + Mini-Map | Lore/Log
+        JPanel topSection = new JPanel(new BorderLayout(15, 0));
+        topSection.setOpaque(false);
 
-        // Title: HERO SHEET
-        JLabel title = new JLabel("Hero Sheet", SwingConstants.CENTER);
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
-        title.setForeground(new Color(48, 44, 40));
-        title.setOpaque(true);
-        title.setBackground(PARCHMENT);
-        title.setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
+        // LEFT: Inventory panel (papier parchemin)
+        JPanel inventoryPanel = createInventoryPanel();
+        inventoryPanel.setPreferredSize(new Dimension(280, 0));
+        topSection.add(inventoryPanel, BorderLayout.WEST);
 
-        // Hero stats bar below title
-        heroStatsLabel = new JLabel("", SwingConstants.CENTER);
-        heroStatsLabel.setFont(heroStatsLabel.getFont().deriveFont(Font.PLAIN, 14f));
-        heroStatsLabel.setForeground(new Color(48, 44, 40));
-        heroStatsLabel.setOpaque(true);
-        heroStatsLabel.setBackground(PARCHMENT);
-        heroStatsLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 2, 0, BORDER_DARK),
-                BorderFactory.createEmptyBorder(4, 12, 12, 12)));
+        // CENTER: Title + Mini-Map
+        JPanel centerSection = new JPanel(new BorderLayout(0, 10));
+        centerSection.setOpaque(false);
 
-        JPanel topGroup = new JPanel(new BorderLayout());
-        topGroup.setOpaque(false);
-        topGroup.add(title, BorderLayout.NORTH);
-        topGroup.add(heroStatsLabel, BorderLayout.SOUTH);
-        right.add(topGroup, BorderLayout.NORTH);
+        // Title: HEAVEN vs ABYSS
+        JLabel titleLabel = new JLabel("HEAVEN vs ABYSS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 32));
+        titleLabel.setForeground(DARK_STONE);
+        titleLabel.setOpaque(false);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        centerSection.add(titleLabel, BorderLayout.NORTH);
 
-        // Center: map + log
-        JPanel centerPanel = new JPanel(new BorderLayout(8, 0));
-        centerPanel.setOpaque(false);
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-
-        // Map
+        // Mini-Map (trou noir dans la page)
         mapCanvas = new MapCanvas();
         JPanel mapHolder = new JPanel(new BorderLayout());
-        mapHolder.setOpaque(false);
+        mapHolder.setOpaque(true);
+        mapHolder.setBackground(Color.BLACK); // Fond noir pour effet nocturne
         mapHolder.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_DARK, 2),
-                BorderFactory.createEmptyBorder(8, 8, 8, 8)));
+                BorderFactory.createLineBorder(DARK_STONE, 3),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
         mapHolder.add(mapCanvas, BorderLayout.CENTER);
-        centerPanel.add(mapHolder, BorderLayout.CENTER);
+        centerSection.add(mapHolder, BorderLayout.CENTER);
 
-        // Log
-        logArea = new JTextArea();
-        logArea.setEditable(false);
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
-        logArea.setFont(logArea.getFont().deriveFont(13f));
-        logArea.setBackground(PARCHMENT);
-        logArea.setForeground(new Color(48, 44, 40));
-        JScrollPane logScroll = new JScrollPane(logArea);
-        logScroll.setPreferredSize(new Dimension(280, 0));
-        logScroll.setBorder(BorderFactory.createLineBorder(BORDER_DARK, 2));
-        centerPanel.add(logScroll, BorderLayout.EAST);
+        topSection.add(centerSection, BorderLayout.CENTER);
 
-        right.add(centerPanel, BorderLayout.CENTER);
+        // RIGHT: Lore/Log panel (papier parchemin)
+        JPanel lorePanel = createLorePanel();
+        lorePanel.setPreferredSize(new Dimension(280, 0));
+        topSection.add(lorePanel, BorderLayout.EAST);
 
-        // Bottom: directional + actions
-        JPanel bottom = new JPanel(new BorderLayout(8, 8));
-        bottom.setOpaque(false);
-        bottom.setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
+        mainContainer.add(topSection, BorderLayout.CENTER);
 
-        // Directional panel (NSEW layout)
-        btnN = createDirButton("N");
-        btnE = createDirButton("E");
-        btnS = createDirButton("S");
-        btnW = createDirButton("W");
+        // FOOTER: Buttons
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        footer.setOpaque(false);
+        footer.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
 
-        JPanel dirPanel = new JPanel(new GridBagLayout());
-        dirPanel.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.gridx = 1; gbc.gridy = 0;
-        dirPanel.add(btnN, gbc);
-        gbc.gridx = 0; gbc.gridy = 1;
-        dirPanel.add(btnW, gbc);
-        gbc.gridx = 2; gbc.gridy = 1;
-        dirPanel.add(btnE, gbc);
-        gbc.gridx = 1; gbc.gridy = 2;
-        dirPanel.add(btnS, gbc);
+        btnMenu = createFooterButton("MENU");
+        btnSwitchView = createFooterButton("SWITCH");
+        btnStats = createFooterButton("HELP");
 
-        // Bottom row: action buttons
-        btnStats = createActionButton("STATS");
-        btnMenu = createActionButton("MENU");
-        btnSwitchView = createActionButton("SWITCH VIEW");
+        footer.add(btnMenu);
+        footer.add(btnSwitchView);
+        footer.add(btnStats);
 
-        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionsPanel.setOpaque(false);
-        actionsPanel.add(btnStats);
-        actionsPanel.add(btnMenu);
-        actionsPanel.add(btnSwitchView);
+        mainContainer.add(footer, BorderLayout.SOUTH);
 
-        JPanel bottomCombined = new JPanel(new BorderLayout());
-        bottomCombined.setOpaque(false);
-        bottomCombined.add(dirPanel, BorderLayout.WEST);
-        bottomCombined.add(actionsPanel, BorderLayout.EAST);
-
-        bottom.add(bottomCombined, BorderLayout.CENTER);
-        right.add(bottom, BorderLayout.SOUTH);
-
-        add(right, BorderLayout.CENTER);
+        add(mainContainer, BorderLayout.CENTER);
 
         // Wire listeners
-        btnN.addActionListener(e -> recordMove("W"));
-        btnE.addActionListener(e -> recordMove("D"));
-        btnS.addActionListener(e -> recordMove("S"));
-        btnW.addActionListener(e -> recordMove("A"));        
-        // Menu button quits the game (sends "Q" like console)
-        btnMenu.addActionListener(e -> recordMove("Q"));    }
-
-    private JButton createDirButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 16f));
-        btn.setPreferredSize(new Dimension(50, 40));
-        btn.setBackground(DARK_STONE);
-        btn.setForeground(PARCHMENT);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createLineBorder(BORDER_DARK, 2));
-        return btn;
+        btnMenu.addActionListener(e -> recordMove("Q"));
     }
 
     private JButton createActionButton(String text) {
@@ -180,6 +166,101 @@ public class GamePanel extends JPanel {
                 BorderFactory.createLineBorder(BORDER_DARK, 2),
                 BorderFactory.createEmptyBorder(8, 16, 8, 16)));
         return btn;
+    }
+    
+    private JButton createFooterButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Serif", Font.BOLD, 16));
+        btn.setBackground(PARCHMENT);
+        btn.setForeground(DARK_STONE);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DARK_STONE, 3),
+                BorderFactory.createEmptyBorder(10, 30, 10, 30)));
+        return btn;
+    }
+    
+    private JPanel createLorePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(true);
+        panel.setBackground(PARCHMENT);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DARK_STONE, 3),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
+        
+        // Title
+        JLabel title = new JLabel("LORE & EVENTS", SwingConstants.CENTER);
+        title.setFont(new Font("Serif", Font.BOLD, 18));
+        title.setForeground(DARK_STONE);
+        
+        // Hero stats (déplacé ici)
+        heroStatsLabel = new JLabel("", SwingConstants.CENTER);
+        heroStatsLabel.setFont(new Font("Serif", Font.PLAIN, 10));
+        heroStatsLabel.setForeground(new Color(48, 44, 40));
+        
+        // Log area
+        logArea = new JTextArea();
+        logArea.setEditable(false);
+        logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(true);
+        logArea.setFont(new Font("Serif", Font.PLAIN, 12));
+        logArea.setBackground(PARCHMENT);
+        logArea.setForeground(new Color(48, 44, 40));
+        JScrollPane logScroll = new JScrollPane(logArea);
+        logScroll.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, BORDER_DARK));
+        
+        JPanel topPanel = new JPanel(new BorderLayout(0, 5));
+        topPanel.setOpaque(false);
+        topPanel.add(title, BorderLayout.NORTH);
+        topPanel.add(heroStatsLabel, BorderLayout.SOUTH);
+        
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(logScroll, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private JPanel createInventoryPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(true);
+        panel.setBackground(PARCHMENT);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_DARK, 2),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        
+        // Title
+        JLabel title = new JLabel("INVENTORY");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setForeground(DARK_STONE);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Equipment labels with HTML for word wrapping
+        inventoryWeaponLabel = new JLabel("<html>⚔ Weapon:<br/>None</html>");
+        inventoryWeaponLabel.setFont(inventoryWeaponLabel.getFont().deriveFont(12f));
+        inventoryWeaponLabel.setForeground(new Color(48, 44, 40));
+        inventoryWeaponLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        inventoryArmorLabel = new JLabel("<html>🛡 Armor:<br/>None</html>");
+        inventoryArmorLabel.setFont(inventoryArmorLabel.getFont().deriveFont(12f));
+        inventoryArmorLabel.setForeground(new Color(48, 44, 40));
+        inventoryArmorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        inventoryHelmLabel = new JLabel("<html>⛑ Helm:<br/>None</html>");
+        inventoryHelmLabel.setFont(inventoryHelmLabel.getFont().deriveFont(12f));
+        inventoryHelmLabel.setForeground(new Color(48, 44, 40));
+        inventoryHelmLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        panel.add(title);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(inventoryWeaponLabel);
+        panel.add(Box.createRigidArea(new Dimension(0, 5)));
+        panel.add(inventoryArmorLabel);
+        panel.add(Box.createRigidArea(new Dimension(0, 5)));
+        panel.add(inventoryHelmLabel);
+        panel.add(Box.createVerticalGlue());
+        
+        return panel;
     }
 
     private void recordMove(String dir) {
@@ -236,6 +317,7 @@ public class GamePanel extends JPanel {
     public void updateGameState(GameState state) {
         this.gameState = state;
         updateHeroStats();
+        updateInventory();
         mapCanvas.repaint();
     }
 
@@ -243,9 +325,39 @@ public class GamePanel extends JPanel {
         if (gameState != null && gameState.getHero() != null) {
             Hero h = gameState.getHero();
             heroStatsLabel.setText(String.format(
-                    "%s  LVL %d  XP %d/%d  ATK %d  DEF %d  HP %d/%d",
+                    "<html><center>%s  LVL %d  XP %d/%d<br>ATK %d  DEF %d  HP %d/%d</center></html>",
                     h.getName(), h.getLevel(), h.getXp(), h.getXpForNextLevel(),
                     h.getAttack(), h.getDefense(), h.getHitPoints(), h.getMaxHitPoints()));
+        }
+    }
+    
+    private void updateInventory() {
+        if (gameState != null && gameState.getHero() != null) {
+            Hero h = gameState.getHero();
+            
+            // Weapon - format HTML sur 2 lignes
+            if (h.getWeapon() != null) {
+                inventoryWeaponLabel.setText(String.format("<html>⚔ Weapon:<br/>%s (+%d ATK)</html>", 
+                    h.getWeapon().getName(), h.getWeapon().getBonusValue()));
+            } else {
+                inventoryWeaponLabel.setText("<html>⚔ Weapon:<br/>None</html>");
+            }
+            
+            // Armor - format HTML sur 2 lignes
+            if (h.getArmor() != null) {
+                inventoryArmorLabel.setText(String.format("<html>🛡 Armor:<br/>%s (+%d DEF)</html>", 
+                    h.getArmor().getName(), h.getArmor().getBonusValue()));
+            } else {
+                inventoryArmorLabel.setText("<html>🛡 Armor:<br/>None</html>");
+            }
+            
+            // Helm - format HTML sur 2 lignes
+            if (h.getHelm() != null) {
+                inventoryHelmLabel.setText(String.format("<html>⛑ Helm:<br/>%s (+%d HP)</html>", 
+                    h.getHelm().getName(), h.getHelm().getBonusValue()));
+            } else {
+                inventoryHelmLabel.setText("<html>⛑ Helm:<br/>None</html>");
+            }
         }
     }
 

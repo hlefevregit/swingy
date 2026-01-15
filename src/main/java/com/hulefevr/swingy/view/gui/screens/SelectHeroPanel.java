@@ -2,9 +2,12 @@ package com.hulefevr.swingy.view.gui.screens;
 
 import com.hulefevr.swingy.model.hero.Hero;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -20,8 +23,52 @@ public class SelectHeroPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(60, 58, 54));
 
-        // Left decorative panel (placeholder for illustration)
-        JPanel left = new JPanel();
+        // Left decorative panel with background image
+        JPanel left = new JPanel() {
+            private BufferedImage backgroundImage;
+            
+            {
+                try {
+                    backgroundImage = ImageIO.read(getClass().getResourceAsStream("/images/SorrowfulAngelsOnARock.png"));
+                } catch (IOException | NullPointerException e) {
+                    System.err.println("Warning: Could not load background image for SelectHeroPanel left panel");
+                }
+            }
+            
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                
+                if (backgroundImage != null) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    
+                    int panelWidth = getWidth();
+                    int panelHeight = getHeight();
+                    int imgWidth = backgroundImage.getWidth();
+                    int imgHeight = backgroundImage.getHeight();
+                    
+                    double panelRatio = (double) panelWidth / panelHeight;
+                    double imgRatio = (double) imgWidth / imgHeight;
+                    
+                    int drawWidth, drawHeight, drawX, drawY;
+                    
+                    if (panelRatio > imgRatio) {
+                        drawWidth = panelWidth;
+                        drawHeight = (int) (panelWidth / imgRatio);
+                        drawX = 0;
+                        drawY = (panelHeight - drawHeight) / 2;
+                    } else {
+                        drawHeight = panelHeight;
+                        drawWidth = (int) (panelHeight * imgRatio);
+                        drawX = (panelWidth - drawWidth) / 2;
+                        drawY = 0;
+                    }
+                    
+                    g2d.drawImage(backgroundImage, drawX, drawY, drawWidth, drawHeight, this);
+                }
+            }
+        };
         left.setPreferredSize(new Dimension(220, 0));
         left.setBackground(new Color(46, 44, 40));
         add(left, BorderLayout.WEST);

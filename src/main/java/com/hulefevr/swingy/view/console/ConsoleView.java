@@ -26,6 +26,7 @@ public class ConsoleView implements View {
 
 	@Override
 	public String promptMenuChoice() {
+		showMainMenu();
 		System.out.print("Enter your choice: ");
 		return InputManager.readLine();
 	}

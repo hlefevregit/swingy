@@ -21,11 +21,19 @@ public class GuiView implements View {
     private boolean splashShown = false;
 
     public GuiView() {
+        System.out.println("DEBUG: GuiView constructor called");
         // Initialize Swing window on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
-            window = new GuiWindow();
-            window.setVisible(true);
-            window.showSplash();
+            try {
+                System.out.println("DEBUG: Creating GuiWindow...");
+                window = new GuiWindow();
+                window.setVisible(true);
+                window.showSplash();
+                System.out.println("DEBUG: GuiWindow created and visible");
+            } catch (Exception e) {
+                System.err.println("ERROR: Failed to create GuiWindow!");
+                e.printStackTrace();
+            }
         });
     }
 
@@ -54,27 +62,51 @@ public class GuiView implements View {
 
     @Override
     public String promptMenuChoice() {
+        System.out.println("DEBUG: promptMenuChoice called, splashShown=" + splashShown);
         // La première fois, attendre que le splash soit passé
         if (!splashShown) {
             splashShown = true;
+            System.out.println("DEBUG: Waiting for window to initialize...");
             // Attendre que la fenêtre soit initialisée
-            while (window == null) {
+            int maxWait = 40; // Maximum 20 secondes (40 * 500ms)
+            int waited = 0;
+            while (window == null && waited < maxWait) {
                 try {
-                    Thread.sleep(2500);
+                    Thread.sleep(500);
+                    waited++;
+                    if (waited % 4 == 0) {
+                        System.out.println("DEBUG: Still waiting... (" + (waited / 2) + "s)");
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    break;
                 }
             }
-            // Le splash est déjà affiché, attendre juste un moment pour qu'il soit visible
-            // Le bouton "OPEN THE BOOK" appellera showMainMenu()
-            // On ne fait rien ici, on laisse juste le splash visible
+            
+            if (window == null) {
+                System.err.println("ERROR: GUI window failed to initialize after " + (waited / 2) + " seconds!");
+                return null;
+            }
+            
+            System.out.println("DEBUG: Window initialized, waiting for splash to be visible (2.5s)...");
+            // Laisser le temps au splash de s'afficher
+            try {
+                Thread.sleep(2500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         
+        System.out.println("DEBUG: Calling showMainMenuAndWait()...");
         // Show main menu inside the main window and wait for selection.
         // This method should not be called on the EDT because it blocks until user chooses.
         try {
-            return window.showMainMenuAndWait();
+            String result = window.showMainMenuAndWait();
+            System.out.println("DEBUG: showMainMenuAndWait returned: " + result);
+            return result;
         } catch (Exception e) {
+            System.err.println("ERROR in showMainMenuAndWait: " + e.getMessage());
+            e.printStackTrace();
             // fallback to simple dialog if something goes wrong
             return JOptionPane.showInputDialog("Choose option:");
         }
@@ -211,7 +243,11 @@ public class GuiView implements View {
     public void showBattleResult(BattleResult result) {
         String msg = result.isVictory() ? "Victory!" : "Defeat...";
         if (window != null) {
-            window.showMessageNonBlocking("Battle Result", msg + (result.isVictory() ? ("\n+" + result.getXpGained() + " XP gained!") : ""));
+            // Ajouter le message dans le GamePanel au lieu d'afficher un dialogue séparé
+            String fullMsg = msg + (result.isVictory() ? (" +" + result.getXpGained() + " XP gained!") : "");
+            window.addGameMessage(fullMsg);
+            // S'assurer qu'on est bien sur le GamePanel
+            window.returnToGame();
             return;
         }
         JOptionPane.showMessageDialog(null, msg);
@@ -282,5 +318,42 @@ public class GuiView implements View {
 
     public void renderError(String[] errors) {
         // Ancienne méthode - peut être supprimée ou adaptée
+    }
+    
+    /**
+     * Affiche l'intro du boss final (The Threshold)
+     */
+    public void showFinalBossIntro() {
+        if (window != null) {
+            window.showFinalBossIntroAndWait();
+        } else {
+            JOptionPane.showMessageDialog(null, "THE THRESHOLD\n\n\"You climbed. You endured. You were never forgiven.\"");
+        }
+    }
+    
+    /**
+     * Affiche le combat du boss final
+     */
+    public void showFinalBossBattle(Hero hero, String message) {
+        if (window != null) {
+            window.showFinalBossBattleAndWait(hero, message);
+        } else {
+            JOptionPane.showMessageDialog(null, message);
+        }
+    }
+    
+    /**
+     * Affiche l'écran de fin et retourne le choix de l'utilisateur
+     */
+    public String showEnding() {
+        if (window != null) {
+            return window.showEndingAndWait();
+        } else {
+            int choice = JOptionPane.showConfirmDialog(null, 
+                "THE FALL IS ETERNAL\n\n\"This is not punishment. This is correction.\"\n\nReturn to menu?", 
+                "Ending", 
+                JOptionPane.YES_NO_OPTION);
+            return (choice == JOptionPane.YES_OPTION) ? "MENU" : "QUIT";
+        }
     }
 }

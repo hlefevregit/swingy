@@ -50,7 +50,7 @@ public class GameLoopController {
         boolean gameRunning = true;
         while (gameRunning) {
             // Générer une nouvelle map pour ce niveau
-            GameMap map = mapGenerator.generate(hero.getMapSize());
+            GameMap map = mapGenerator.generate(hero.getMapSize(), hero.getLevel());
             gameState.setMap(map);
             
             // Placer le héros au centre de la map
@@ -90,7 +90,11 @@ public class GameLoopController {
                 // 4. Vérifier si sortie atteinte
                 if (moveResult.isExitReached()) {
                     levelComplete = true;
+                    // Restaurer les HP du héros à 100%
+                    int maxHp = hero.getMaxHitPoints();
+                    hero.setCurrentHitPoints(maxHp);
                     view.showMessage("\n✓ You reached the exit!");
+                    view.showMessage("✦ Your wounds heal as you pass through the threshold. HP restored to " + maxHp + "!");
                     continue;
                 }
                 
@@ -125,10 +129,8 @@ public class GameLoopController {
             } else if (levelComplete) {
                 // Le héros a atteint la sortie - continuer au niveau suivant
                 // Note: Le level up se fait automatiquement dans gainExperience() pendant les combats
-                System.out.println("DEBUG: Exit reached, hero level=" + hero.getLevel());
-                
-                // La map sera regénérée pour le niveau actuel dans la prochaine itération
-                // Pas besoin de vérifier checkLevelUp() ici car c'est géré pendant les combats
+                // System.out.println("DEBUG: Exit reached, hero level=" + hero.getLevel());
+                saveHero(hero);
             }
         }
     }
@@ -158,20 +160,27 @@ public class GameLoopController {
         view.showBattleResult(battleResult);
         
         if (!battleResult.isVictory()) {
-            return new EncounterResult(true, false); // Joueur mort
+            // Vérifier si le héros est vraiment mort (HP <= 0)
+            if (!hero.isAlive()) {
+                return new EncounterResult(true, false); // Joueur mort
+            }
+            // Sinon, le héros a perdu le combat mais survit avec des HP réduits
+            view.showMessage("You were defeated but managed to escape with your life...");
+            encounter.setResolved(true);
+            return new EncounterResult(false, false);
         }
         
         // Victoire : gagner XP
         int oldLevel = hero.getLevel();
         int oldXp = hero.getXp();
-        System.out.println("DEBUG: Before gainExperience - Level: " + oldLevel + ", XP: " + oldXp + "/" + hero.getXpForNextLevel());
+        // System.out.println("DEBUG: Before gainExperience - Level: " + oldLevel + ", XP: " + oldXp + "/" + hero.getXpForNextLevel());
         boolean didLevelUp = hero.gainExperience(battleResult.getXpGained());
-        System.out.println("DEBUG: After gainExperience - Level: " + hero.getLevel() + ", XP: " + hero.getXp() + "/" + hero.getXpForNextLevel() + ", didLevelUp: " + didLevelUp);
+        // System.out.println("DEBUG: After gainExperience - Level: " + hero.getLevel() + ", XP: " + hero.getXp() + "/" + hero.getXpForNextLevel() + ", didLevelUp: " + didLevelUp);
         view.showMessage("+" + battleResult.getXpGained() + " XP gained!");
         
         // Vérifier si level up pendant le combat
         if (didLevelUp) {
-            System.out.println("DEBUG: Hero leveled up during battle! " + oldLevel + " -> " + hero.getLevel());
+            // System.out.println("DEBUG: Hero leveled up during battle! " + oldLevel + " -> " + hero.getLevel());
             showLevelUpScreen(hero);
             
             // Vérifier si level 15 atteint
@@ -228,7 +237,7 @@ public class GameLoopController {
     private void showLevelUpScreen(Hero hero) {
         int currentLevel = hero.getLevel();
         
-        System.out.println("DEBUG: showLevelUpScreen called - current level: " + currentLevel);
+        System.out.println(": showLevelUpScreen called - current level: " + currentLevel);
         
         // Construire le message narratif selon le niveau
         StringBuilder message = new StringBuilder();
@@ -252,9 +261,9 @@ public class GameLoopController {
         }
         
         // Afficher l'écran épique de level up (GUI) ou le message (console)
-        System.out.println("DEBUG: Calling view.showLevelUp with level " + hero.getLevel());
+        // System.out.println("DEBUG: Calling view.showLevelUp with level " + hero.getLevel());
         view.showLevelUp(hero.getLevel(), message.toString());
-        System.out.println("DEBUG: view.showLevelUp returned");
+        // System.out.println("DEBUG: view.showLevelUp returned");
         
         // Pour la console, afficher les infos supplémentaires
         if (!(view instanceof com.hulefevr.swingy.view.gui.GuiView)) {
@@ -285,8 +294,14 @@ public class GameLoopController {
         view.showMessage("Defy the Judgment.");
         view.showMessage("Remember who you were.");
         view.showMessage("═".repeat(50));
-        view.showMessage("\nPress Enter to begin your descent...");
-        view.promptMenuChoice();
+        
+        // Seulement pour la console, demander de presser Enter
+        if (!(view instanceof com.hulefevr.swingy.view.gui.GuiView)) {
+            view.showMessage("\nPress Enter to begin your descent...");
+            view.promptMenuChoice();
+        } else {
+            view.showMessage("\nBegin your descent...");
+        }
     }
     
     /**
@@ -325,46 +340,70 @@ public class GameLoopController {
      * Affiche la séquence du boss final (niveau 15).
      */
     private void showFinalBoss(Hero hero) {
-        view.showMessage("\n" + "═".repeat(50));
-        view.showMessage("The land ends.");
-        view.showMessage("");
-        view.showMessage("No ash.");
-        view.showMessage("No chains.");
-        view.showMessage("No walls.");
-        view.showMessage("");
-        view.showMessage("Only light — vast, silent, absolute.");
-        view.showMessage("");
-        view.showMessage("You have ascended.");
-        view.showMessage("═".repeat(50));
-        view.showMessage("\nPress Enter...");
-        view.promptMenuChoice();
+        // Si c'est GuiView, afficher le panel graphique d'intro
+        if (view instanceof com.hulefevr.swingy.view.gui.GuiView) {
+            ((com.hulefevr.swingy.view.gui.GuiView) view).showFinalBossIntro();
+            
+            // Combat contre le boss final (version GUI avec le panel épique)
+            ((com.hulefevr.swingy.view.gui.GuiView) view).showFinalBossBattle(
+                hero,
+                "\"The radiant sword descends—a judgment total.\n\nThe Archangel obliterates you, leaving ash and silence.\""
+            );
+        } else {
+            // Version console - afficher toute la narration
+            view.showMessage("\n" + "═".repeat(50));
+            view.showMessage("The land ends.");
+            view.showMessage("");
+            view.showMessage("No ash.");
+            view.showMessage("No chains.");
+            view.showMessage("No walls.");
+            view.showMessage("");
+            view.showMessage("Only light — vast, silent, absolute.");
+            view.showMessage("");
+            view.showMessage("You have ascended.");
+            view.showMessage("═".repeat(50));
+            view.showMessage("\nPress Enter...");
+            view.promptMenuChoice();
+            
+            view.showMessage("\nYou expect battle.");
+            view.showMessage("You expect resistance.");
+            view.showMessage("");
+            view.showMessage("None comes.");
+            view.showMessage("");
+            view.showMessage("The Choir does not sing.");
+            view.showMessage("The gates do not close.");
+            view.showMessage("");
+            view.showMessage("They were never meant to stop you.");
+            view.showMessage("\nPress Enter...");
+            view.promptMenuChoice();
+        }
         
-        view.showMessage("\nYou expect battle.");
-        view.showMessage("You expect resistance.");
-        view.showMessage("");
-        view.showMessage("None comes.");
-        view.showMessage("");
-        view.showMessage("The Choir does not sing.");
-        view.showMessage("The gates do not close.");
-        view.showMessage("");
-        view.showMessage("They were never meant to stop you.");
-        view.showMessage("\nPress Enter...");
-        view.promptMenuChoice();
-        
-        view.showMessage("\n" + "═".repeat(50));
-        view.showMessage("          THE FALL IS ETERNAL");
-        view.showMessage("═".repeat(50));
-        view.showMessage("");
-        view.showMessage("You reached Heaven.");
-        view.showMessage("");
-        view.showMessage("Heaven rejected you.");
-        view.showMessage("");
-        view.showMessage("The Trial continues.");
-        view.showMessage("");
-        view.showMessage("═".repeat(50));
-        view.showMessage("\nThank you for playing.");
-        view.showMessage("\nPress Enter to return to menu...");
-        view.promptMenuChoice();
+        // Écran de fin épique
+        if (view instanceof com.hulefevr.swingy.view.gui.GuiView) {
+            // Version GUI avec le panel épique "The Fall is Eternal"
+            String choice = ((com.hulefevr.swingy.view.gui.GuiView) view).showEnding();
+            // Le choix est géré par le panel (retour au menu ou quitter)
+            if ("QUIT".equals(choice)) {
+                view.close();
+                System.exit(0);
+            }
+        } else {
+            // Version console
+            view.showMessage("\n" + "═".repeat(50));
+            view.showMessage("          THE FALL IS ETERNAL");
+            view.showMessage("═".repeat(50));
+            view.showMessage("");
+            view.showMessage("You reached Heaven.");
+            view.showMessage("");
+            view.showMessage("Heaven rejected you.");
+            view.showMessage("");
+            view.showMessage("The Trial continues.");
+            view.showMessage("");
+            view.showMessage("═".repeat(50));
+            view.showMessage("\nThank you for playing.");
+            view.showMessage("\nPress Enter to return to menu...");
+            view.promptMenuChoice();
+        }
     }
     
     /**

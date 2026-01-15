@@ -1,20 +1,30 @@
 package com.hulefevr.swingy.view.gui.screens;
 
 import com.hulefevr.swingy.model.artifact.Artifact;
+import com.hulefevr.swingy.model.artifact.ArtifactType;
+import com.hulefevr.swingy.model.hero.Hero;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
  * Panel pour afficher le loot après une victoire
- * Design inspiré de "Relic Unveiled"
+ * Design "Relic Unveiled" - style grimoire dark fantasy
  */
 public class LootPanel extends JPanel {
+    private Hero hero;
     private Artifact artifact;
     
-    private JLabel titleLabel;
-    private JLabel artifactNameLabel;
-    private JLabel descriptionLabel;
+    // UI Components
+    private JLabel relicIconLabel;
+    private JLabel relicNameLabel;
+    private JLabel relicTypeLabel;
+    private JLabel currentItemLabel;
+    private JLabel comparisonAtkLabel;
+    private JLabel comparisonDefLabel;
+    private JLabel comparisonHpLabel;
+    private JLabel inventorySummaryLabel;
+    private JLabel loreLabel;
     private JLabel hintLabel;
     private JButton btnClaim;
     private JButton btnLeave;
@@ -24,177 +34,295 @@ public class LootPanel extends JPanel {
     private String pendingChoice = null;
     
     // Couleurs du thème
-    private static final Color PARCHMENT = new Color(220, 205, 175);
-    private static final Color DARK_BROWN = new Color(40, 30, 20);
-    private static final Color BORDER_GOLD = new Color(160, 140, 90);
+    private static final Color PARCHMENT = new Color(213, 199, 161);
+    private static final Color DARK_BORDER = new Color(30, 24, 24);
+    private static final Color CARD_BG = new Color(20, 20, 24);
+    private static final Color GOLD_BORDER = new Color(177, 160, 106);
+    private static final Color ICON_COLOR = new Color(232, 214, 168);
+    private static final Color BUTTON_GOLD = new Color(177, 160, 106);
+    private static final Color HINT_GRAY = new Color(85, 85, 85);
     
     public LootPanel() {
         setLayout(new BorderLayout());
-        setBackground(DARK_BROWN);
+        setBackground(PARCHMENT);
+        setBorder(BorderFactory.createLineBorder(DARK_BORDER, 3));
         
-        initComponents();
-        layoutComponents();
+        buildUI();
         setupKeyBindings();
     }
     
-    private void initComponents() {
-        // Title
-        titleLabel = new JLabel("RELIC UNVEILED", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Serif", Font.BOLD, 28));
-        titleLabel.setForeground(DARK_BROWN);
-        titleLabel.setOpaque(true);
-        titleLabel.setBackground(PARCHMENT);
+    private void buildUI() {
+        // Main container with padding
+        JPanel mainPanel = new JPanel(new BorderLayout(20, 20));
+        mainPanel.setBackground(PARCHMENT);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         
-        // Artifact name
-        artifactNameLabel = new JLabel("Artifact Name", SwingConstants.LEFT);
-        artifactNameLabel.setFont(new Font("Serif", Font.BOLD, 20));
-        artifactNameLabel.setForeground(DARK_BROWN);
-        artifactNameLabel.setOpaque(false);
+        // Top section: Left (Relic Card) + Right (Info/Comparison)
+        JPanel topSection = new JPanel(new BorderLayout(20, 0));
+        topSection.setOpaque(false);
         
-        // Description
-        descriptionLabel = new JLabel("<html><i>\"A fragment of what you were.\"</i></html>");
-        descriptionLabel.setFont(new Font("Serif", Font.ITALIC, 16));
-        descriptionLabel.setForeground(new Color(60, 50, 40));
-        descriptionLabel.setOpaque(false);
+        // LEFT: Relic Card (300x380)
+        JPanel relicCard = createRelicCard();
+        topSection.add(relicCard, BorderLayout.WEST);
         
-        // Hint
-        hintLabel = new JLabel("<html><i>hint: If fate refuses, steel will answer.</i></html>");
-        hintLabel.setFont(new Font("Serif", Font.ITALIC, 12));
-        hintLabel.setForeground(new Color(80, 70, 60));
-        hintLabel.setOpaque(false);
+        // RIGHT: Info Panel
+        JPanel infoPanel = createInfoPanel();
+        topSection.add(infoPanel, BorderLayout.CENTER);
         
-        // Buttons
-        btnClaim = createButton("CLAIM IT");
-        btnLeave = createButton("LEAVE IT");
+        mainPanel.add(topSection, BorderLayout.CENTER);
+        
+        // Bottom section: Inventory Summary + Lore + Buttons
+        JPanel bottomSection = createBottomSection();
+        mainPanel.add(bottomSection, BorderLayout.SOUTH);
+        
+        add(mainPanel, BorderLayout.CENTER);
     }
     
-    private JButton createButton(String text) {
+    private JPanel createRelicCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(CARD_BG);
+        card.setPreferredSize(new Dimension(300, 380));
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(GOLD_BORDER, 2),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        // Icon in center
+        relicIconLabel = new JLabel("⚔", SwingConstants.CENTER);
+        relicIconLabel.setFont(new Font("Serif", Font.BOLD, 120));
+        relicIconLabel.setForeground(ICON_COLOR);
+        
+        card.add(relicIconLabel, BorderLayout.CENTER);
+        
+        return card;
+    }
+    
+    private JPanel createInfoPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        
+        // Relic Name
+        relicNameLabel = new JLabel("Unknown Relic");
+        relicNameLabel.setFont(new Font("Serif", Font.BOLD, 18));
+        relicNameLabel.setForeground(DARK_BORDER);
+        relicNameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Relic Type
+        relicTypeLabel = new JLabel("Type: Unknown");
+        relicTypeLabel.setFont(new Font("Serif", Font.PLAIN, 14));
+        relicTypeLabel.setForeground(DARK_BORDER);
+        relicTypeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        relicTypeLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 15, 0));
+        
+        // Current Item
+        currentItemLabel = new JLabel("Current: None");
+        currentItemLabel.setFont(new Font("Serif", Font.PLAIN, 14));
+        currentItemLabel.setForeground(new Color(80, 70, 60));
+        currentItemLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        currentItemLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        
+        // Comparison Labels
+        comparisonAtkLabel = new JLabel("");
+        comparisonAtkLabel.setFont(new Font("Serif", Font.PLAIN, 14));
+        comparisonAtkLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        comparisonDefLabel = new JLabel("");
+        comparisonDefLabel.setFont(new Font("Serif", Font.PLAIN, 14));
+        comparisonDefLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        comparisonHpLabel = new JLabel("");
+        comparisonHpLabel.setFont(new Font("Serif", Font.PLAIN, 14));
+        comparisonHpLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        panel.add(relicNameLabel);
+        panel.add(relicTypeLabel);
+        panel.add(currentItemLabel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(comparisonAtkLabel);
+        panel.add(comparisonDefLabel);
+        panel.add(comparisonHpLabel);
+        panel.add(Box.createVerticalGlue());
+        
+        return panel;
+    }
+    
+    private JPanel createBottomSection() {
+        JPanel bottom = new JPanel(new BorderLayout(20, 10));
+        bottom.setOpaque(false);
+        bottom.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+        
+        // LEFT: Inventory Summary
+        inventorySummaryLabel = new JLabel("<html>Current Stats:<br>ATK: 0 | DEF: 0 | HP: 0</html>");
+        inventorySummaryLabel.setFont(new Font("Serif", Font.PLAIN, 12));
+        inventorySummaryLabel.setForeground(new Color(80, 70, 60));
+        
+        // CENTER: Lore Text
+        loreLabel = new JLabel("<html><i>\"A fragment of what you were.\"</i></html>", SwingConstants.CENTER);
+        loreLabel.setFont(new Font("Serif", Font.ITALIC, 16));
+        loreLabel.setForeground(new Color(60, 50, 40));
+        
+        // RIGHT: Buttons + Hint
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setOpaque(false);
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setOpaque(false);
+        
+        btnClaim = createStyledButton("CLAIM IT");
+        btnLeave = createStyledButton("LEAVE IT");
+        
+        buttonPanel.add(btnClaim);
+        buttonPanel.add(btnLeave);
+        
+        hintLabel = new JLabel("<html><i>hint: If fate refuses, steel will answer.</i></html>", SwingConstants.RIGHT);
+        hintLabel.setFont(new Font("Serif", Font.ITALIC, 12));
+        hintLabel.setForeground(HINT_GRAY);
+        hintLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        hintLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        
+        rightPanel.add(buttonPanel);
+        rightPanel.add(hintLabel);
+        
+        bottom.add(inventorySummaryLabel, BorderLayout.WEST);
+        bottom.add(loreLabel, BorderLayout.CENTER);
+        bottom.add(rightPanel, BorderLayout.EAST);
+        
+        return bottom;
+    }
+    
+    private JButton createStyledButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Serif", Font.BOLD, 16));
-        btn.setBackground(DARK_BROWN);
-        btn.setForeground(PARCHMENT);
+        btn.setFont(new Font("Serif", Font.BOLD, 14));
+        btn.setBackground(BUTTON_GOLD);
+        btn.setForeground(DARK_BORDER);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 3),
-            BorderFactory.createEmptyBorder(12, 35, 12, 35)
+            BorderFactory.createLineBorder(DARK_BORDER, 2),
+            BorderFactory.createEmptyBorder(10, 25, 10, 25)
         ));
         return btn;
     }
     
-    private void layoutComponents() {
-        // Main panel avec bordures
-        JPanel mainContent = new JPanel(new BorderLayout(15, 15));
-        mainContent.setBackground(PARCHMENT);
-        mainContent.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(DARK_BROWN, 15),
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_GOLD, 3),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-            )
-        ));
+    /**
+     * Update the panel with new loot information
+     */
+    public void updateLoot(Hero hero, Artifact newArtifact) {
+        this.hero = hero;
+        this.artifact = newArtifact;
         
-        // Top: Title
-        mainContent.add(titleLabel, BorderLayout.NORTH);
+        if (newArtifact == null) {
+            return;
+        }
         
-        // Center: Content
-        JPanel centerPanel = new JPanel(new BorderLayout(20, 20));
-        centerPanel.setOpaque(false);
+        // Update relic icon based on type
+        String icon = "⚔"; // Default weapon
+        if (newArtifact.getType() != null) {
+            switch (newArtifact.getType()) {
+                case WEAPON:
+                    icon = "⚔";
+                    break;
+                case ARMOR:
+                    icon = "⛨";
+                    break;
+                case HELM:
+                    icon = "♕";
+                    break;
+            }
+        }
+        relicIconLabel.setText(icon);
         
-        // Left: Gravure placeholder
-        JPanel gravurePanel = new JPanel();
-        gravurePanel.setBackground(new Color(50, 50, 50));
-        gravurePanel.setPreferredSize(new Dimension(400, 450));
-        gravurePanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_GOLD, 3),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+        // Update relic name and type
+        relicNameLabel.setText(newArtifact.getName());
         
-        // Placeholder pour la gravure
-        JLabel gravureLabel = new JLabel("⚜", SwingConstants.CENTER);
-        gravureLabel.setFont(new Font("Serif", Font.BOLD, 120));
-        gravureLabel.setForeground(PARCHMENT);
-        gravurePanel.add(gravureLabel);
+        String typeText = "Type: ";
+        if (newArtifact.getType() != null) {
+            switch (newArtifact.getType()) {
+                case WEAPON:
+                    typeText += "Weapon";
+                    break;
+                case ARMOR:
+                    typeText += "Armor";
+                    break;
+                case HELM:
+                    typeText += "Helm";
+                    break;
+            }
+        }
+        relicTypeLabel.setText(typeText);
         
-        centerPanel.add(gravurePanel, BorderLayout.WEST);
+        // Get current equipped item
+        Artifact currentItem = null;
+        String currentItemText = "Current: None";
         
-        // Right: Artifact info
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.setOpaque(false);
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(30, 20, 30, 20));
+        if (hero != null && newArtifact.getType() != null) {
+            switch (newArtifact.getType()) {
+                case WEAPON:
+                    currentItem = hero.getWeapon();
+                    if (currentItem != null) {
+                        currentItemText = "Current: " + currentItem.getName();
+                    }
+                    break;
+                case ARMOR:
+                    currentItem = hero.getArmor();
+                    if (currentItem != null) {
+                        currentItemText = "Current: " + currentItem.getName();
+                    }
+                    break;
+                case HELM:
+                    currentItem = hero.getHelm();
+                    if (currentItem != null) {
+                        currentItemText = "Current: " + currentItem.getName();
+                    }
+                    break;
+            }
+        }
+        currentItemLabel.setText(currentItemText);
         
-        // Artifact name
-        JPanel namePanel = new JPanel(new BorderLayout());
-        namePanel.setOpaque(false);
-        namePanel.add(artifactNameLabel, BorderLayout.NORTH);
-        namePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        // Calculate stat changes
+        int currentBonus = currentItem != null ? currentItem.getBonusValue() : 0;
+        int newBonus = newArtifact.getBonusValue();
+        int diff = newBonus - currentBonus;
         
-        // Description area
-        JPanel descPanel = new JPanel(new BorderLayout());
-        descPanel.setOpaque(false);
-        descPanel.add(descriptionLabel, BorderLayout.NORTH);
-        descPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 80, 0));
+        String diffColor = diff > 0 ? "#228B22" : (diff < 0 ? "#8B0000" : "#555555");
+        String diffSign = diff > 0 ? "+" : "";
         
-        // Second description line (repeated for emphasis)
-        JLabel descLabel2 = new JLabel("<html><i>\"A fragment of what you were.\"</i></html>");
-        descLabel2.setFont(new Font("Serif", Font.ITALIC, 16));
-        descLabel2.setForeground(new Color(60, 50, 40));
-        JPanel desc2Panel = new JPanel(new BorderLayout());
-        desc2Panel.setOpaque(false);
-        desc2Panel.add(descLabel2, BorderLayout.NORTH);
-        desc2Panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 40, 0));
+        // Update comparison labels
+        if (newArtifact.getType() == ArtifactType.WEAPON) {
+            comparisonAtkLabel.setText("<html>ATK: " + currentBonus + " → " + newBonus + 
+                " <span style='color:" + diffColor + ";'>(" + diffSign + diff + ")</span></html>");
+            comparisonDefLabel.setText("");
+            comparisonHpLabel.setText("");
+        } else if (newArtifact.getType() == ArtifactType.ARMOR) {
+            comparisonAtkLabel.setText("");
+            comparisonDefLabel.setText("<html>DEF: " + currentBonus + " → " + newBonus + 
+                " <span style='color:" + diffColor + ";'>(" + diffSign + diff + ")</span></html>");
+            comparisonHpLabel.setText("");
+        } else if (newArtifact.getType() == ArtifactType.HELM) {
+            comparisonAtkLabel.setText("");
+            comparisonDefLabel.setText("");
+            comparisonHpLabel.setText("<html>HP: " + currentBonus + " → " + newBonus + 
+                " <span style='color:" + diffColor + ";'>(" + diffSign + diff + ")</span></html>");
+        }
         
-        // Buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(btnClaim);
-        buttonPanel.add(btnLeave);
-        
-        // Hint at bottom
-        JPanel hintPanel = new JPanel(new BorderLayout());
-        hintPanel.setOpaque(false);
-        hintPanel.add(hintLabel, BorderLayout.NORTH);
-        hintPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
-        
-        infoPanel.add(namePanel);
-        infoPanel.add(descPanel);
-        infoPanel.add(desc2Panel);
-        infoPanel.add(buttonPanel);
-        infoPanel.add(Box.createVerticalGlue());
-        infoPanel.add(hintPanel);
-        
-        centerPanel.add(infoPanel, BorderLayout.CENTER);
-        
-        mainContent.add(centerPanel, BorderLayout.CENTER);
-        
-        add(mainContent, BorderLayout.CENTER);
+        // Update inventory summary
+        if (hero != null) {
+            int totalAtk = hero.getAttack();
+            int totalDef = hero.getDefense();
+            int totalHp = hero.getMaxHitPoints();
+            
+            inventorySummaryLabel.setText("<html>Current Stats:<br>ATK: " + totalAtk + 
+                " | DEF: " + totalDef + " | HP: " + totalHp + "</html>");
+        }
     }
     
     /**
-     * Configure le panel avec l'artefact
+     * Configure le panel avec l'artefact (legacy method)
      */
     public void setArtifact(Artifact artifact) {
-        this.artifact = artifact;
-        
-        if (artifact != null) {
-            // Formater le nom avec le bonus
-            String bonus = "";
-            if (artifact.getType() != null) {
-                switch (artifact.getType()) {
-                    case WEAPON:
-                        bonus = " (+" + artifact.getBonusValue() + " ATK)";
-                        break;
-                    case ARMOR:
-                        bonus = " (+" + artifact.getBonusValue() + " DEF)";
-                        break;
-                    case HELM:
-                        bonus = " (+" + artifact.getBonusValue() + " HP)";
-                        break;
-                }
-            }
-            
-            artifactNameLabel.setText(artifact.getName() + bonus);
-        }
+        updateLoot(null, artifact);
     }
     
     /**

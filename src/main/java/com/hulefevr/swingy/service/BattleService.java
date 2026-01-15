@@ -21,12 +21,14 @@ public class BattleService {
         // Combat simplifié pour l'instant
         // TODO: Implémenter un système de combat tour par tour plus complexe
         
-        int heroScore = hero.getAttack() + hero.getDefense() + hero.getHitPoints();
-        int enemyScore = enemy.getAttack() + enemy.getDefense() + enemy.getHitPoints();
+        // Utiliser les stats max du héros, pas ses HP actuels
+        int heroScore = hero.getAttack() + hero.getDefense() + (hero.getMaxHitPoints() / 2);
+        int enemyScore = enemy.getAttack() + enemy.getDefense() + (enemy.getHitPoints() / 2);
         
-        // Ajouter un facteur aléatoire
-        heroScore += random.nextInt(20);
-        enemyScore += random.nextInt(20);
+        // Ajouter un facteur aléatoire (±30% de la moyenne des scores)
+        int variance = (heroScore + enemyScore) / 6;
+        heroScore += random.nextInt(variance);
+        enemyScore += random.nextInt(variance);
         
         boolean victory = heroScore > enemyScore;
         
